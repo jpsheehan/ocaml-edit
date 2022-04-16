@@ -59,6 +59,15 @@ let render_hook cursor lines renderer font =
     >>= fun () -> ()
   else ()
 
+let set_line cursor lines line_idx =
+  let num_lines = List.length lines in
+  cursor.line <-
+    (if line_idx < 0 then 0
+    else if line_idx >= num_lines then num_lines - 1
+    else line_idx);
+  cursor.dirty <- true;
+  cursor
+
 let set_line_rel cursor lines rel_line =
   (match cursor.line + rel_line with
   | n when n < 0 ->
@@ -93,6 +102,15 @@ let set_line_rel cursor lines rel_line =
       cursor.desired_column <- no_desired_column
   | _ -> ());
 
+  cursor.dirty <- true;
+  cursor
+
+let set_column cursor lines column_idx =
+  let line_length = String.length (List.nth lines cursor.line) in
+  cursor.column <-
+    (if column_idx < 0 then 0
+    else if column_idx > line_length then line_length
+    else column_idx);
   cursor.dirty <- true;
   cursor
 

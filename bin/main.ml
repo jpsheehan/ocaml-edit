@@ -62,6 +62,15 @@ let rec main_event_handler state =
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
           state.cursor <- Cursor.set_line_rel state.cursor state.lines 1;
           state
+      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
+          state.cursor <- Cursor.set_column state.cursor state.lines 0;
+          state
+      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
+          state.cursor <-
+            Cursor.set_column state.cursor state.lines
+              (String.length
+                 (List.nth state.lines (Cursor.get_line state.cursor)));
+          state
       | _ -> state
     in
     main_event_handler state
