@@ -1,0 +1,4 @@
+(executable
+ (public_name OEditor)
+ (name main)
+ (libraries OEditor tsdl tsdl-ttf))
