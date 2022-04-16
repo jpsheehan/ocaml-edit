@@ -67,12 +67,14 @@ let set_line_rel cursor lines rel_line =
       cursor.line <- 0;
       cursor.desired_column <- no_desired_column
   | n when n > List.length lines - 1 ->
+      (* we can't go forward further than the last line. *)
       cursor.line <- List.length lines - 1;
       cursor.column <- String.length (List.nth lines cursor.line);
       cursor.desired_column <- no_desired_column
   | n when n = List.length lines - 1 -> cursor.line <- List.length lines - 1
   | n -> cursor.line <- n);
 
+  (* now figure out what the column should be *)
   let line_length = String.length (List.nth lines cursor.line) in
   (match
      ( cursor.column <= line_length,
