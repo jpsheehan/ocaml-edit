@@ -68,12 +68,28 @@ let set_line_rel cursor lines rel_line =
       cursor.desired_column <- no_desired_column
   | n when n > List.length lines - 1 ->
       cursor.line <- List.length lines - 1;
-      cursor.column <- String.length (List.nth lines cursor.line)
+      cursor.column <- String.length (List.nth lines cursor.line);
+      cursor.desired_column <- no_desired_column
   | n when n = List.length lines - 1 -> cursor.line <- List.length lines - 1
   | n -> cursor.line <- n);
 
-  if cursor.column > String.length (List.nth lines cursor.line) then
-    cursor.column <- String.length (List.nth lines cursor.line);
+  let line_length = String.length (List.nth lines cursor.line) in
+  (match
+     ( cursor.column <= line_length,
+       cursor.desired_column <> no_desired_column,
+       cursor.desired_column <= line_length )
+   with
+  | true, true, true ->
+      cursor.column <- cursor.desired_column;
+      cursor.desired_column <- no_desired_column
+  | _, true, false -> cursor.column <- line_length
+  | false, false, _ ->
+      cursor.desired_column <- cursor.column;
+      cursor.column <- line_length
+  | false, true, true ->
+      cursor.column <- cursor.desired_column;
+      cursor.desired_column <- no_desired_column
+  | _ -> ());
 
   cursor.dirty <- true;
   cursor

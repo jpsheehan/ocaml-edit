@@ -94,7 +94,14 @@ let main () =
       window = w;
       renderer = r;
       font = f;
-      lines = [ "Hello, OCaml!"; "This is another line!"; "And another..." ];
+      lines =
+        [
+          "Hello, OCaml!";
+          "This is another line!";
+          "And another...";
+          "foo";
+          "barbazqux";
+        ];
       continue = true;
       cursor = Cursor.create ();
     };
