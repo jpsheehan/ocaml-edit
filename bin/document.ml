@@ -2,10 +2,27 @@ open Tsdl
 open Tsdl_ttf
 open Helpers
 
-type document = { lines : string list; mutable cursor : Cursor.cursor }
+let scroll_speed = 10
 
-let create_empty () = { lines = [ "" ]; cursor = Cursor.create () }
-let create_from_string text = { lines = [ text ]; cursor = Cursor.create () }
+type document = {
+  lines : string list;
+  mutable cursor : Cursor.cursor;
+  mutable viewport_offset : Helpers.point;
+}
+
+let create_empty () =
+  {
+    lines = [ "" ];
+    cursor = Cursor.create ();
+    viewport_offset = { x = 0; y = 0 };
+  }
+
+let create_from_string text =
+  {
+    lines = [ text ];
+    cursor = Cursor.create ();
+    viewport_offset = { x = 0; y = 0 };
+  }
 
 let create_from_file filename =
   let file = open_in filename in
@@ -17,7 +34,11 @@ let create_from_file filename =
       close_in file;
       lines
   in
-  { cursor = Cursor.create (); lines = List.rev (read_lines_from_file []) }
+  {
+    cursor = Cursor.create ();
+    lines = List.rev (read_lines_from_file []);
+    viewport_offset = { x = 0; y = 0 };
+  }
 
 let create_texture_from_text renderer font text : Sdl.texture * Sdl.rect =
   let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
@@ -31,11 +52,12 @@ let create_texture_from_text renderer font text : Sdl.texture * Sdl.rect =
 let draw_line_of_text document renderer font line_idx =
   let line = List.nth document.lines line_idx in
   if String.length line > 0 then
-    let texture, src_size = create_texture_from_text renderer font line in
     let line_height = Ttf.font_height font in
+    let texture, src_size = create_texture_from_text renderer font line in
     let dst_size =
-      Sdl.Rect.create ~x:0 ~y:(line_height * line_idx) ~w:(Sdl.Rect.w src_size)
-        ~h:(Sdl.Rect.h src_size)
+      Sdl.Rect.create ~x:document.viewport_offset.x
+        ~y:(document.viewport_offset.y + (line_height * line_idx))
+        ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
     in
     Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
     Sdl.destroy_texture texture
@@ -76,5 +98,15 @@ let event_hook document e =
         Cursor.set_column document.cursor document.lines
           (String.length
              (List.nth document.lines (Cursor.get_line document.cursor)));
+      document
+  | `Mouse_wheel ->
+      document.viewport_offset <-
+        {
+          x = document.viewport_offset.x;
+          y =
+            (document.viewport_offset.y
+            + (scroll_speed * Sdl.Event.(get e mouse_wheel_y)));
+        };
+      (* TODO: limit the amount of scroll applied. might make more sense to break this logic out into its own thing. *)
       document
   | _ -> document
