@@ -18,8 +18,10 @@ let rec main_event_handler state =
   if Sdl.poll_event (Some e) then
     let state =
       match Sdl.Event.enum Sdl.Event.(get e typ) with
-      | (`Quit | `Key_down)
-        when Sdl.Event.(get e keyboard_keycode) = Sdl.K.escape ->
+      | `Quit ->
+          state.continue <- false;
+          state
+      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.escape ->
           state.continue <- false;
           state
       | _ ->
