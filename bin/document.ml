@@ -102,7 +102,7 @@ let event_hook document e =
   | `Mouse_wheel ->
       document.viewport_offset <-
         {
-          x = document.viewport_offset.x;
+          document.viewport_offset with
           y =
             (document.viewport_offset.y
             + (scroll_speed * Sdl.Event.(get e mouse_wheel_y)));
