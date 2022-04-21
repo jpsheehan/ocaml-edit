@@ -37,7 +37,9 @@ let rec main_loop state =
   | true ->
       let state = main_event_handler state in
       let now = Int32.to_int (Sdl.get_ticks ()) in
-      state.document <- Document.process_hook state.document now;
+      state.document <-
+        Document.process_hook state.document now
+          (Sdl.render_get_clip_rect state.renderer);
       Sdl.set_render_draw_color state.renderer 0x00 0x00 0x00 0xff >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
       Document.render_hook state.document state.renderer state.font;

@@ -8,6 +8,7 @@ type document = {
   lines : string list;
   mutable cursor : Cursor.cursor;
   mutable viewport_offset : Helpers.point;
+  mutable viewport_size : Helpers.size;
 }
 
 let create_empty () =
@@ -15,6 +16,7 @@ let create_empty () =
     lines = [ "" ];
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
+    viewport_size = { w = 0; h = 0 };
   }
 
 let create_from_string text =
@@ -22,6 +24,7 @@ let create_from_string text =
     lines = [ text ];
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
+    viewport_size = { w = 0; h = 0 };
   }
 
 let create_from_file filename =
@@ -38,6 +41,7 @@ let create_from_file filename =
     cursor = Cursor.create ();
     lines = List.rev (read_lines_from_file []);
     viewport_offset = { x = 0; y = 0 };
+    viewport_size = { w = 0; h = 0 };
   }
 
 let create_texture_from_text renderer font text : Sdl.texture * Sdl.rect =
@@ -71,10 +75,14 @@ let draw_all_lines document renderer font =
 let scroll_to point =
   let y = if point.y < 0 then 0 else point.y in
   let x = if point.x < 0 then 0 else point.x in
+  (* TODO: Add upper limits too! *)
   { x; y }
 
-let process_hook document now =
+let _scroll_cursor_into_view document = document
+
+let process_hook document now (dst_rect : Sdl.rect) =
   document.cursor <- Cursor.process_hook document.cursor now;
+  document.viewport_size <- { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   document
 
 let render_hook document renderer font =

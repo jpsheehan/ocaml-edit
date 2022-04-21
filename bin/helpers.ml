@@ -4,3 +4,4 @@ let ( >>= ) o f =
   | Ok a -> f a
 
 type point = { x : int; y : int }
+type size = { w : int; h : int }
