@@ -55,8 +55,9 @@ let draw_line_of_text document renderer font line_idx =
     let line_height = Ttf.font_height font in
     let texture, src_size = create_texture_from_text renderer font line in
     let dst_size =
-      Sdl.Rect.create ~x:document.viewport_offset.x
-        ~y:(document.viewport_offset.y + (line_height * line_idx))
+      Sdl.Rect.create
+        ~x:(-document.viewport_offset.x)
+        ~y:(-document.viewport_offset.y + (line_height * line_idx))
         ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
     in
     Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
@@ -67,13 +68,19 @@ let draw_all_lines document renderer font =
     draw_line_of_text document renderer font idx
   done
 
+let scroll_to point =
+  let y = if point.y < 0 then 0 else point.y in
+  let x = if point.x < 0 then 0 else point.x in
+  { x; y }
+
 let process_hook document now =
   document.cursor <- Cursor.process_hook document.cursor now;
   document
 
 let render_hook document renderer font =
   draw_all_lines document renderer font;
-  Cursor.render_hook document.cursor document.lines renderer font
+  Cursor.render_hook document.cursor document.lines document.viewport_offset
+    renderer font
 
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
@@ -101,12 +108,12 @@ let event_hook document e =
       document
   | `Mouse_wheel ->
       document.viewport_offset <-
-        {
-          document.viewport_offset with
-          y =
-            (document.viewport_offset.y
-            + (scroll_speed * Sdl.Event.(get e mouse_wheel_y)));
-        };
-      (* TODO: limit the amount of scroll applied. might make more sense to break this logic out into its own thing. *)
+        scroll_to
+          {
+            document.viewport_offset with
+            y =
+              document.viewport_offset.y
+              + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
+          };
       document
   | _ -> document

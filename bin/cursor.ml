@@ -46,16 +46,16 @@ let process_hook cursor now =
     }
   else cursor
 
-let render_hook cursor lines renderer font =
+let render_hook cursor lines viewport_offset renderer font =
   if cursor.blink_state then
     let line_so_far = String.sub (List.nth lines cursor.line) 0 cursor.column in
     let line_height = Ttf.font_height font in
     Ttf.size_text font line_so_far >>= fun (w, h) ->
     Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-    Sdl.render_draw_line renderer w
-      (cursor.line * line_height)
-      w
-      ((cursor.line * line_height) + h)
+    Sdl.render_draw_line renderer (w - viewport_offset.x)
+      ((cursor.line * line_height) - viewport_offset.y)
+      (w - viewport_offset.x)
+      ((cursor.line * line_height) + h - viewport_offset.y)
     >>= fun () -> ()
   else ()
 
