@@ -44,7 +44,7 @@ let rec main_loop state =
       Sdl.render_clear state.renderer >>= fun () ->
       Document.render_hook state.document state.renderer state.font;
       Sdl.render_present state.renderer;
-      Sdl.delay 10l;
+      Sdl.delay 30l;
       main_loop state
 
 let main () =
@@ -61,7 +61,7 @@ let main () =
       renderer = r;
       font = f;
       continue = true;
-      document = Document.create_from_file "./bin/main.ml";
+      document = Document.create_from_file f "./bin/main.ml";
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;

@@ -6,28 +6,31 @@ let scroll_speed = 10
 
 type document = {
   lines : string list;
+  font : Ttf.font;
   mutable cursor : Cursor.cursor;
   mutable viewport_offset : Helpers.point;
   mutable viewport_size : Helpers.size;
 }
 
-let create_empty () =
+let create_empty font =
   {
     lines = [ "" ];
+    font;
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
 
-let create_from_string text =
+let create_from_string font text =
   {
     lines = [ text ];
+    font;
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
 
-let create_from_file filename =
+let create_from_file font filename =
   let file = open_in filename in
   let rec read_lines_from_file lines =
     try
@@ -38,6 +41,7 @@ let create_from_file filename =
       lines
   in
   {
+    font;
     cursor = Cursor.create ();
     lines = List.rev (read_lines_from_file []);
     viewport_offset = { x = 0; y = 0 };
@@ -72,10 +76,13 @@ let draw_all_lines document renderer font =
     draw_line_of_text document renderer font idx
   done
 
-let scroll_to point =
-  let y = if point.y < 0 then 0 else point.y in
+let scroll_to document point =
+  let max_y =
+    (List.length document.lines - 1) * Ttf.font_height document.font
+  in
+  let y = clamp point.y 0 max_y in
   let x = if point.x < 0 then 0 else point.x in
-  (* TODO: Add upper limits too! *)
+  (* TODO: Add upper limits for x too! *)
   { x; y }
 
 let _scroll_cursor_into_view document = document
@@ -116,7 +123,7 @@ let event_hook document e =
       document
   | `Mouse_wheel ->
       document.viewport_offset <-
-        scroll_to
+        scroll_to document
           {
             document.viewport_offset with
             y =
