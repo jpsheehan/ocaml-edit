@@ -44,7 +44,7 @@ let rec main_loop state =
       Sdl.render_clear state.renderer >>= fun () ->
       Document.render_hook state.document state.renderer state.font;
       Sdl.render_present state.renderer;
-      Sdl.delay 30l;
+      Sdl.delay 20l;
       main_loop state
 
 let main () =
