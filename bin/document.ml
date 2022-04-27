@@ -71,15 +71,25 @@ let draw_line_of_text document renderer font line_idx =
     Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
     Sdl.destroy_texture texture
 
-let draw_all_lines document renderer font =
-  for idx = 0 to List.length document.lines - 1 do
-    draw_line_of_text document renderer font idx
-  done
-
 let get_num_visible_lines document =
   match document.viewport_size.h with
   | 0 -> 0
-  | n -> Ttf.font_height document.font / n
+  | h -> h / Ttf.font_height document.font
+
+let get_first_visible_line document = Cursor.get_line document.cursor
+
+let get_last_visible_line document =
+  let line = get_first_visible_line document + get_num_visible_lines document in
+  clamp line 0 (List.length document.lines - 1)
+
+let draw_all_lines document renderer font =
+  for
+    idx = 0
+    to List.length document.lines - 1
+       (* idx = get_first_visible_line document to get_last_visible_line document - 1 *)
+  do
+    draw_line_of_text document renderer font idx
+  done
 
 let scroll_to document point =
   let max_y =
@@ -106,14 +116,18 @@ let scroll_cursor_into_view document =
   | Some line -> { document.viewport_offset with y = line * font_height }
 
 let process_hook document now (dst_rect : Sdl.rect) =
+  (* Printf.printf "Height: %d\n" document.viewport_size.h; *)
   document.cursor <- Cursor.process_hook document.cursor now;
   document.viewport_size <- { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   document
 
-let render_hook document renderer font =
+let prerender_hook document renderer _font =
   document.viewport_size <-
-    (let r = Sdl.render_get_clip_rect renderer in
+    (let r = Sdl.render_get_viewport renderer in
      { w = Sdl.Rect.w r; h = Sdl.Rect.h r });
+  document
+
+let render_hook document renderer font =
   draw_all_lines document renderer font;
   Cursor.render_hook document.cursor document.lines document.viewport_offset
     renderer font

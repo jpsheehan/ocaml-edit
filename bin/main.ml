@@ -42,8 +42,22 @@ let rec main_loop state =
           (Sdl.render_get_clip_rect state.renderer);
       Sdl.set_render_draw_color state.renderer 0x00 0x00 0x00 0xff >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
+      Sdl.create_texture state.renderer
+        (Sdl.get_window_pixel_format state.window)
+        Sdl.Texture.access_target ~w:640 ~h:480
+      >>= fun texture ->
+      Sdl.set_render_target state.renderer (Some texture) >>= fun () ->
+      state.document <-
+        Document.prerender_hook state.document state.renderer state.font;
       Document.render_hook state.document state.renderer state.font;
+      Sdl.set_render_target state.renderer None >>= fun () ->
+      Sdl.render_copy
+        ~src:(Sdl.Rect.create ~x:0 ~y:0 ~w:640 ~h:480)
+        ~dst:(Sdl.Rect.create ~x:0 ~y:0 ~w:640 ~h:480)
+        state.renderer texture
+      >>= fun () ->
       Sdl.render_present state.renderer;
+      Sdl.destroy_texture texture;
       Sdl.delay 20l;
       main_loop state
 
