@@ -3,10 +3,12 @@ open Tsdl_ttf
 open Helpers
 
 let scroll_speed = 10
+let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff
 
 type document = {
   lines : string list;
   font : Ttf.font;
+  bg : Sdl.color;
   mutable cursor : Cursor.cursor;
   mutable viewport_offset : Helpers.point;
   mutable viewport_size : Helpers.size;
@@ -16,6 +18,7 @@ let create_empty font =
   {
     lines = [ "" ];
     font;
+    bg = default_bg_color;
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
@@ -25,6 +28,7 @@ let create_from_string font text =
   {
     lines = [ text ];
     font;
+    bg = default_bg_color;
     cursor = Cursor.create ();
     viewport_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
@@ -42,15 +46,15 @@ let create_from_file font filename =
   in
   {
     font;
+    bg = default_bg_color;
     cursor = Cursor.create ();
     lines = List.rev (read_lines_from_file []);
     viewport_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
 
-let create_texture_from_text renderer font text : Sdl.texture * Sdl.rect =
+let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
   let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
-  let bg = Sdl.Color.create ~r:0x00 ~g:0x00 ~b:0x00 ~a:0xff in
   Ttf.render_utf8_shaded font text fg bg >>= fun surface ->
   let surface_size = Sdl.get_clip_rect surface in
   Sdl.create_texture_from_surface renderer surface >>= fun texture ->
@@ -61,7 +65,9 @@ let draw_line_of_text document renderer font line_idx =
   let line = List.nth document.lines line_idx in
   if String.length line > 0 then
     let line_height = Ttf.font_height font in
-    let texture, src_size = create_texture_from_text renderer font line in
+    let texture, src_size =
+      create_texture_from_text renderer font line document.bg
+    in
     let dst_size =
       Sdl.Rect.create
         ~x:(-document.viewport_offset.x)
@@ -85,8 +91,6 @@ let get_last_visible_line document =
 
 let draw_all_lines document renderer font =
   for
-    (*idx = 0
-      to List.length document.lines - 1*)
     idx = get_first_visible_line document to get_last_visible_line document - 1
   do
     draw_line_of_text document renderer font idx
@@ -129,6 +133,10 @@ let prerender_hook document renderer _font =
   document
 
 let render_hook document renderer font =
+  Sdl.set_render_draw_color renderer (Sdl.Color.r document.bg)
+    (Sdl.Color.g document.bg) (Sdl.Color.b document.bg)
+    (Sdl.Color.a document.bg)
+  >>= fun () ->
   Sdl.render_fill_rect renderer None >>= fun () ->
   draw_all_lines document renderer font;
   Cursor.render_hook document.cursor document.lines document.viewport_offset
