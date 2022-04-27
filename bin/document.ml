@@ -76,7 +76,8 @@ let get_num_visible_lines document =
   | 0 -> 0
   | h -> h / Ttf.font_height document.font
 
-let get_first_visible_line document = Cursor.get_line document.cursor
+let get_first_visible_line document =
+  document.viewport_offset.y / Ttf.font_height document.font
 
 let get_last_visible_line document =
   let line = get_first_visible_line document + get_num_visible_lines document in
@@ -84,9 +85,9 @@ let get_last_visible_line document =
 
 let draw_all_lines document renderer font =
   for
-    idx = 0
-    to List.length document.lines - 1
-       (* idx = get_first_visible_line document to get_last_visible_line document - 1 *)
+    (*idx = 0
+      to List.length document.lines - 1*)
+    idx = get_first_visible_line document to get_last_visible_line document - 1
   do
     draw_line_of_text document renderer font idx
   done
@@ -128,6 +129,7 @@ let prerender_hook document renderer _font =
   document
 
 let render_hook document renderer font =
+  Sdl.render_fill_rect renderer None >>= fun () ->
   draw_all_lines document renderer font;
   Cursor.render_hook document.cursor document.lines document.viewport_offset
     renderer font
