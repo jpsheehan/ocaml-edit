@@ -161,7 +161,12 @@ let insert_text_at_cursor document text =
          (String.length (get_current_line document)
          - Cursor.get_column document.cursor))
   in
-  { document with lines =  }
+  let lines = replace document.lines (Cursor.get_line document.cursor) line in
+  {
+    document with
+    lines;
+    cursor = Cursor.set_column_rel document.cursor lines (String.length text);
+  }
 
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with

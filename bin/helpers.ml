@@ -9,8 +9,16 @@ type point = { x : int; y : int }
 type size = { w : int; h : int }
 
 let take list n =
-  let l = ref [] in
-  for i = 0 to n - 1 do
-    l <- (List.nth list i) :: !l;
-  done
-  !l
+  let rec aux list n taken =
+    if n = 0 then taken
+    else match list with [] -> taken | h :: t -> aux t (n - 1) (h :: taken)
+  in
+  List.rev (aux list n [])
+
+let skip list n =
+  let rec aux list n =
+    if n <= 0 then list else match list with [] -> [] | _ :: t -> aux t (n - 1)
+  in
+  aux list n
+
+let replace list n item = take list n @ (item :: skip list (n + 1))
