@@ -87,7 +87,7 @@ let get_first_visible_line document =
 
 let get_last_visible_line document =
   let line = get_first_visible_line document + get_num_visible_lines document in
-  clamp line 0 (List.length document.lines - 1)
+  clamp line 0 (List.length document.lines)
 
 let draw_all_lines document renderer font =
   for
@@ -98,7 +98,8 @@ let draw_all_lines document renderer font =
 
 let scroll_to document point =
   let max_y =
-    (List.length document.lines - 1) * Ttf.font_height document.font
+    (List.length document.lines * Ttf.font_height document.font)
+    - (get_num_visible_lines document * Ttf.font_height document.font)
   in
   let y = clamp point.y 0 max_y in
   let x = if point.x < 0 then 0 else point.x in
@@ -113,7 +114,7 @@ let scroll_cursor_into_view document =
   let first_line =
     if desired_line < first_visible_line then Some desired_line
     else if desired_line >= last_visible_line then
-      Some (desired_line - get_num_visible_lines document)
+      Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
   match first_line with
