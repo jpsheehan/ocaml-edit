@@ -147,6 +147,7 @@ let render_hook document renderer font =
     renderer font
 
 let insert_text_at_cursor document text =
+  let before, after = split_string_at
   let line =
     String.cat
       (String.cat
@@ -167,6 +168,11 @@ let insert_text_at_cursor document text =
     lines;
     cursor = Cursor.set_column_rel document.cursor lines (String.length text);
   }
+
+let insert_newline_at_cursor document =
+  let changed_line = (String.sub (get_current_line document) 0 (Cursor.get_column document.cursor)) in
+  let new_line = (String.sub (get_current_line document) (Cursor.get_column document.cursor) )
+  document
 
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
@@ -211,4 +217,6 @@ let event_hook document e =
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       insert_text_at_cursor document text
+  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.K.return ->
+      insert_newline_at_cursor document
   | _ -> document

@@ -22,3 +22,9 @@ let skip list n =
   aux list n
 
 let replace list n item = take list n @ (item :: skip list (n + 1))
+let insert_after list n item = take list n @ (item :: skip list n)
+
+let split_string_at str n =
+  let before = String.sub str 0 n in
+  let after = String.sub str n (String.length str - n) in
+  (before, after)
