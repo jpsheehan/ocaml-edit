@@ -53,6 +53,9 @@ let create_from_file font filename =
     viewport_size = { w = 0; h = 0 };
   }
 
+let get_current_line document =
+  List.nth document.lines (Cursor.get_line document.cursor)
+
 let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
   let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
   Ttf.render_utf8_shaded font text fg bg >>= fun surface ->
@@ -143,6 +146,23 @@ let render_hook document renderer font =
   Cursor.render_hook document.cursor document.lines document.viewport_offset
     renderer font
 
+let insert_text_at_cursor document text =
+  let line =
+    String.cat
+      (String.cat
+         (String.sub
+            (get_current_line document)
+            0
+            (Cursor.get_column document.cursor))
+         text)
+      (String.sub
+         (get_current_line document)
+         (Cursor.get_column document.cursor)
+         (String.length (get_current_line document)
+         - Cursor.get_column document.cursor))
+  in
+  { document with lines =  }
+
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
@@ -183,4 +203,7 @@ let event_hook document e =
               + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
           };
       document
+  | `Text_input ->
+      let text = Sdl.Event.(get e text_editing_text) in
+      insert_text_at_cursor document text
   | _ -> document

@@ -3,7 +3,7 @@ open Tsdl_ttf
 open Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
-let font_size = 16
+let font_size = 14
 
 type editor_state = {
   window : Sdl.window;
