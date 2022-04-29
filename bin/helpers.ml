@@ -10,7 +10,7 @@ type size = { w : int; h : int }
 
 let take list n =
   let rec aux list n taken =
-    if n = 0 then taken
+    if n <= 0 then taken
     else match list with [] -> taken | h :: t -> aux t (n - 1) (h :: taken)
   in
   List.rev (aux list n [])
@@ -22,7 +22,7 @@ let skip list n =
   aux list n
 
 let replace list n item = take list n @ (item :: skip list (n + 1))
-let insert_after list n item = take list n @ (item :: skip list n)
+let insert_after list n item = take list (n + 1) @ (item :: skip list (n + 1))
 
 let split_string_at str n =
   let before = String.sub str 0 n in

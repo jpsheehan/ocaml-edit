@@ -147,21 +147,12 @@ let render_hook document renderer font =
     renderer font
 
 let insert_text_at_cursor document text =
-  let before, after = split_string_at
-  let line =
-    String.cat
-      (String.cat
-         (String.sub
-            (get_current_line document)
-            0
-            (Cursor.get_column document.cursor))
-         text)
-      (String.sub
-         (get_current_line document)
-         (Cursor.get_column document.cursor)
-         (String.length (get_current_line document)
-         - Cursor.get_column document.cursor))
+  let before, after =
+    split_string_at
+      (get_current_line document)
+      (Cursor.get_column document.cursor)
   in
+  let line = String.cat (String.cat before text) after in
   let lines = replace document.lines (Cursor.get_line document.cursor) line in
   {
     document with
@@ -170,9 +161,18 @@ let insert_text_at_cursor document text =
   }
 
 let insert_newline_at_cursor document =
-  let changed_line = (String.sub (get_current_line document) 0 (Cursor.get_column document.cursor)) in
-  let new_line = (String.sub (get_current_line document) (Cursor.get_column document.cursor) )
-  document
+  let changed_line, new_line =
+    split_string_at
+      (get_current_line document)
+      (Cursor.get_column document.cursor)
+  in
+  let lines =
+    replace document.lines (Cursor.get_line document.cursor) changed_line
+  in
+  let lines = insert_after lines (Cursor.get_line document.cursor) new_line in
+  let cursor = Cursor.set_column document.cursor lines 0 in
+  let cursor = Cursor.set_line_rel cursor lines 1 in
+  { document with lines; cursor }
 
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
@@ -217,6 +217,6 @@ let event_hook document e =
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       insert_text_at_cursor document text
-  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.K.return ->
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
       insert_newline_at_cursor document
   | _ -> document
