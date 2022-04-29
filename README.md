@@ -13,7 +13,7 @@ An experimental editor made using OCaml.
 ### Editing
 - [x] Text insertion
 - [ ] Text deletion (backspace and delete)
-- [ ] Newlines
+- [x] Newlines
 
 ### UI
 - [ ] Widgets (TODO: Expand on this)
