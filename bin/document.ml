@@ -120,9 +120,10 @@ let scroll_cursor_into_view document =
       Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
-  match first_line with
-  | None -> document.viewport_offset
-  | Some line -> { document.viewport_offset with y = line * font_height }
+  document.viewport_offset <-
+    (match first_line with
+    | None -> document.viewport_offset
+    | Some line -> { document.viewport_offset with y = line * font_height })
 
 let process_hook document now (dst_rect : Sdl.rect) =
   (* Printf.printf "Height: %d\n" document.viewport_size.h; *)
@@ -179,35 +180,42 @@ let event_hook document e =
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
       document.cursor <-
         Cursor.set_column_rel document.cursor document.lines (-1);
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
       document.cursor <- Cursor.set_column_rel document.cursor document.lines 1;
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
       document.cursor <- Cursor.set_line_rel document.cursor document.lines (-1);
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       document.cursor <- Cursor.set_line_rel document.cursor document.lines 1;
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
       document.cursor <- Cursor.set_column document.cursor document.lines 0;
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
       document.cursor <-
         Cursor.set_column document.cursor document.lines
           (String.length
              (List.nth document.lines (Cursor.get_line document.cursor)));
-      document.viewport_offset <- scroll_cursor_into_view document;
+      scroll_cursor_into_view document;
       document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
       document.cursor <-
         Cursor.set_line_rel document.cursor document.lines
           (-get_num_visible_lines document);
+      scroll_cursor_into_view document;
+      document
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
+      document.cursor <-
+        Cursor.set_line_rel document.cursor document.lines
+          (get_num_visible_lines document);
+      scroll_cursor_into_view document;
       document
   | `Mouse_wheel ->
       document.viewport_offset <-
