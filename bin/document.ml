@@ -176,8 +176,27 @@ let insert_newline_at_cursor document =
   { document with lines; cursor }
 
 let remove_chars_before_cursor document _n =
-  if Cursor.get_column document.cursor = 0 then document
-    (* todo: backspace over newlines *)
+  if Cursor.get_column document.cursor = 0 then
+    if Cursor.get_line document.cursor = 0 then document
+      (* cannot backspace before the start of the document *)
+    else
+      let cursor = Cursor.set_line_rel document.cursor document.lines (-1) in
+      let cursor =
+        Cursor.set_column cursor document.lines
+          (String.length (List.nth document.lines (Cursor.get_line cursor)))
+      in
+      let changed_line =
+        String.cat
+          (List.nth document.lines (Cursor.get_line document.cursor - 1))
+          (get_current_line document)
+      in
+      let lines =
+        replace document.lines
+          (Cursor.get_line document.cursor - 1)
+          changed_line
+      in
+      let lines = remove lines (Cursor.get_line document.cursor) in
+      { document with lines; cursor }
   else
     let before, after =
       split_string_at
