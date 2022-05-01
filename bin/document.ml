@@ -175,6 +175,24 @@ let insert_newline_at_cursor document =
   let cursor = Cursor.set_line_rel cursor lines 1 in
   { document with lines; cursor }
 
+let remove_chars_before_cursor document _n =
+  if Cursor.get_column document.cursor = 0 then document
+    (* todo: backspace over newlines *)
+  else
+    let before, after =
+      split_string_at
+        (get_current_line document)
+        (Cursor.get_column document.cursor)
+    in
+    let changed_line =
+      String.cat (String.sub before 0 (String.length before - 1)) after
+    in
+    let lines =
+      replace document.lines (Cursor.get_line document.cursor) changed_line
+    in
+    let cursor = Cursor.set_column_rel document.cursor lines (-1) in
+    { document with lines; cursor }
+
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
@@ -232,4 +250,6 @@ let event_hook document e =
       insert_text_at_cursor document text
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
       insert_newline_at_cursor document
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
+      remove_chars_before_cursor document 1
   | _ -> document
