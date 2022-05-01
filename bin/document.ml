@@ -204,6 +204,11 @@ let event_hook document e =
              (List.nth document.lines (Cursor.get_line document.cursor)));
       document.viewport_offset <- scroll_cursor_into_view document;
       document
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
+      document.cursor <-
+        Cursor.set_line_rel document.cursor document.lines
+          (-get_num_visible_lines document);
+      document
   | `Mouse_wheel ->
       document.viewport_offset <-
         scroll_to document

@@ -62,7 +62,6 @@ let rec main_loop state =
       main_loop state
 
 let main () =
-  Printf.printf "Running inside %s\n" (Sys.getcwd ());
   Sdl.init Sdl.Init.video >>= fun () ->
   Ttf.init () >>= fun () ->
   Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
