@@ -9,9 +9,9 @@ type document = {
   lines : string list;
   font : Ttf.font;
   bg : Sdl.color;
-  mutable cursor : Cursor.cursor;
-  mutable viewport_offset : Helpers.point;
-  mutable viewport_size : Helpers.size;
+  cursor : Cursor.cursor;
+  viewport_offset : Helpers.point;
+  viewport_size : Helpers.size;
 }
 
 let create_empty font =
@@ -120,22 +120,29 @@ let scroll_cursor_into_view document =
       Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
-  document.viewport_offset <-
-    (match first_line with
-    | None -> document.viewport_offset
-    | Some line -> { document.viewport_offset with y = line * font_height })
+  {
+    document with
+    viewport_offset =
+      (match first_line with
+      | None -> document.viewport_offset
+      | Some line -> { document.viewport_offset with y = line * font_height });
+  }
 
 let process_hook document now (dst_rect : Sdl.rect) =
   (* Printf.printf "Height: %d\n" document.viewport_size.h; *)
-  document.cursor <- Cursor.process_hook document.cursor now;
-  document.viewport_size <- { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
-  document
+  {
+    document with
+    cursor = Cursor.process_hook document.cursor now;
+    viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
+  }
 
 let prerender_hook document renderer _font =
-  document.viewport_size <-
-    (let r = Sdl.render_get_viewport renderer in
-     { w = Sdl.Rect.w r; h = Sdl.Rect.h r });
-  document
+  {
+    document with
+    viewport_size =
+      (let r = Sdl.render_get_viewport renderer in
+       { w = Sdl.Rect.w r; h = Sdl.Rect.h r });
+  }
 
 let render_hook document renderer font =
   Sdl.set_render_draw_color renderer (Sdl.Color.r document.bg)
@@ -175,7 +182,9 @@ let insert_newline_at_cursor document =
   let cursor = Cursor.set_line_rel cursor lines 1 in
   { document with lines; cursor }
 
-let remove_chars_before_cursor document _n =
+let remove_char_after_cursor document = document
+
+let remove_char_before_cursor document =
   if Cursor.get_column document.cursor = 0 then
     if Cursor.get_line document.cursor = 0 then document
       (* cannot backspace before the start of the document *)
@@ -196,7 +205,7 @@ let remove_chars_before_cursor document _n =
           changed_line
       in
       let lines = remove lines (Cursor.get_line document.cursor) in
-      { document with lines; cursor }
+      scroll_cursor_into_view { document with lines; cursor }
   else
     let before, after =
       split_string_at
@@ -215,60 +224,78 @@ let remove_chars_before_cursor document _n =
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-      document.cursor <-
-        Cursor.set_column_rel document.cursor document.lines (-1);
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor = Cursor.set_column_rel document.cursor document.lines (-1);
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-      document.cursor <- Cursor.set_column_rel document.cursor document.lines 1;
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor = Cursor.set_column_rel document.cursor document.lines 1;
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-      document.cursor <- Cursor.set_line_rel document.cursor document.lines (-1);
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor = Cursor.set_line_rel document.cursor document.lines (-1);
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-      document.cursor <- Cursor.set_line_rel document.cursor document.lines 1;
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor = Cursor.set_line_rel document.cursor document.lines 1;
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
-      document.cursor <- Cursor.set_column document.cursor document.lines 0;
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor = Cursor.set_column document.cursor document.lines 0;
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
-      document.cursor <-
-        Cursor.set_column document.cursor document.lines
-          (String.length
-             (List.nth document.lines (Cursor.get_line document.cursor)));
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor =
+            Cursor.set_column document.cursor document.lines
+              (String.length (get_current_line document));
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
-      document.cursor <-
-        Cursor.set_line_rel document.cursor document.lines
-          (-get_num_visible_lines document);
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor =
+            Cursor.set_line_rel document.cursor document.lines
+              (-get_num_visible_lines document);
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
-      document.cursor <-
-        Cursor.set_line_rel document.cursor document.lines
-          (get_num_visible_lines document);
-      scroll_cursor_into_view document;
-      document
+      scroll_cursor_into_view
+        {
+          document with
+          cursor =
+            Cursor.set_line_rel document.cursor document.lines
+              (get_num_visible_lines document);
+        }
   | `Mouse_wheel ->
-      document.viewport_offset <-
-        scroll_to document
-          {
-            document.viewport_offset with
-            y =
-              document.viewport_offset.y
-              + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
-          };
-      document
+      {
+        document with
+        viewport_offset =
+          scroll_to document
+            {
+              document.viewport_offset with
+              y =
+                document.viewport_offset.y
+                + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
+            };
+      }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       insert_text_at_cursor document text
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
       insert_newline_at_cursor document
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
-      remove_chars_before_cursor document 1
+      remove_char_before_cursor document
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.delete ->
+      remove_char_after_cursor document
   | _ -> document
