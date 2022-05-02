@@ -187,10 +187,20 @@ let remove_char_after_cursor document =
     Cursor.get_column document.cursor
     = String.length (get_current_line document)
   then
-    if Cursor.get_line document.cursor = List.length document.lines then
+    if Cursor.get_line document.cursor = List.length document.lines - 1 then
       document
-    else (* Delete over newline *)
-      document
+    else
+      (* Delete over newline *)
+      let changed_line =
+        String.cat
+          (get_current_line document)
+          (List.nth document.lines (Cursor.get_line document.cursor + 1))
+      in
+      let lines =
+        replace document.lines (Cursor.get_line document.cursor) changed_line
+      in
+      let lines = remove lines (Cursor.get_line document.cursor + 1) in
+      { document with lines }
   else
     (* Delete in middle of line *)
     let before, after =
