@@ -9,8 +9,8 @@ type editor_state = {
   window : Sdl.window;
   renderer : Sdl.renderer;
   font : Ttf.font;
-  mutable document : Document.document;
-  mutable continue : bool;
+  document : Document.document;
+  continue : bool;
 }
 
 let rec main_event_handler state =
@@ -18,15 +18,10 @@ let rec main_event_handler state =
   if Sdl.poll_event (Some e) then
     let state =
       match Sdl.Event.enum Sdl.Event.(get e typ) with
-      | `Quit ->
-          state.continue <- false;
-          state
+      | `Quit -> { state with continue = false }
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.escape ->
-          state.continue <- false;
-          state
-      | _ ->
-          state.document <- Document.event_hook state.document e;
-          state
+          { state with continue = false }
+      | _ -> { state with document = Document.event_hook state.document e }
     in
     main_event_handler state
   else state
@@ -37,9 +32,14 @@ let rec main_loop state =
   | true ->
       let state = main_event_handler state in
       let now = Int32.to_int (Sdl.get_ticks ()) in
-      state.document <-
-        Document.process_hook state.document now
-          (Sdl.render_get_clip_rect state.renderer);
+      let state =
+        {
+          state with
+          document =
+            Document.process_hook state.document now
+              (Sdl.render_get_clip_rect state.renderer);
+        }
+      in
       Sdl.set_render_draw_color state.renderer 0x33 0x33 0x33 0xff >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
       Sdl.create_texture state.renderer
@@ -47,8 +47,13 @@ let rec main_loop state =
         Sdl.Texture.access_target ~w:620 ~h:460
       >>= fun texture ->
       Sdl.set_render_target state.renderer (Some texture) >>= fun () ->
-      state.document <-
-        Document.prerender_hook state.document state.renderer state.font;
+      let state =
+        {
+          state with
+          document =
+            Document.prerender_hook state.document state.renderer state.font;
+        }
+      in
       Document.render_hook state.document state.renderer state.font;
       Sdl.set_render_target state.renderer None >>= fun () ->
       Sdl.render_copy
