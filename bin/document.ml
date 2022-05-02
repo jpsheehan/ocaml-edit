@@ -182,7 +182,29 @@ let insert_newline_at_cursor document =
   let cursor = Cursor.set_line_rel cursor lines 1 in
   { document with lines; cursor }
 
-let remove_char_after_cursor document = document
+let remove_char_after_cursor document =
+  if
+    Cursor.get_column document.cursor
+    = String.length (get_current_line document)
+  then
+    if Cursor.get_line document.cursor = List.length document.lines then
+      document
+    else (* Delete over newline *)
+      document
+  else
+    (* Delete in middle of line *)
+    let before, after =
+      split_string_at
+        (get_current_line document)
+        (Cursor.get_column document.cursor)
+    in
+    let changed_line =
+      String.cat before (String.sub after 1 (String.length after - 1))
+    in
+    let lines =
+      replace document.lines (Cursor.get_line document.cursor) changed_line
+    in
+    { document with lines }
 
 let remove_char_before_cursor document =
   if Cursor.get_column document.cursor = 0 then
