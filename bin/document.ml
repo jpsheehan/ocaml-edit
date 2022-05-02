@@ -109,6 +109,8 @@ let scroll_to document point =
   (* TODO: Add upper limits for x too! *)
   { x; y }
 
+let get_width_of_text doc text = Ttf.size_utf8 doc.font text >>= fun (w, _) -> w
+
 let scroll_cursor_into_view document =
   let font_height = Ttf.font_height document.font in
   let desired_line = Cursor.get_line document.cursor in
@@ -120,16 +122,29 @@ let scroll_cursor_into_view document =
       Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
+  Printf.printf "Viewport y is %d\n" document.viewport_offset.y;
+  let x =
+    let text_width =
+      get_width_of_text document
+        (String.sub
+           (get_current_line document)
+           0
+           (Cursor.get_column document.cursor))
+    in
+    if text_width > document.viewport_offset.x + document.viewport_size.w then
+      document.viewport_offset.x
+    else if text_width < document.viewport_offset.x then text_width
+    else document.viewport_offset.x
+  in
   {
     document with
     viewport_offset =
       (match first_line with
-      | None -> document.viewport_offset
-      | Some line -> { document.viewport_offset with y = line * font_height });
+      | None -> { document.viewport_offset with x }
+      | Some line -> { y = line * font_height; x });
   }
 
 let process_hook document now (dst_rect : Sdl.rect) =
-  (* Printf.printf "Height: %d\n" document.viewport_size.h; *)
   {
     document with
     cursor = Cursor.process_hook document.cursor now;
@@ -323,11 +338,11 @@ let event_hook document e =
       }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
-      insert_text_at_cursor document text
+      scroll_cursor_into_view (insert_text_at_cursor document text)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
-      insert_newline_at_cursor document
+      scroll_cursor_into_view (insert_newline_at_cursor document)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
-      remove_char_before_cursor document
+      scroll_cursor_into_view (remove_char_before_cursor document)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.delete ->
-      remove_char_after_cursor document
+      scroll_cursor_into_view (remove_char_after_cursor document)
   | _ -> document
