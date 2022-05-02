@@ -3,10 +3,10 @@ open Tsdl_ttf
 open Helpers
 
 type cursor = {
-  mutable line : int;  (** The current line in the document. *)
+  line : int;  (** The current line in the document. *)
   mutable column : int;
       (** The current column in the document. The column may be between 0 and the length of the current line (inclusive). *)
-  mutable dirty : bool;
+  dirty : bool;
       (** Indicates whether the cursor should be re-rendered this frame. *)
   mutable last_blink_time : int;
       (** The time (in ticks) that the last blink state change occurred. *)
@@ -61,27 +61,31 @@ let render_hook cursor lines viewport_offset renderer font =
 
 let set_line cursor lines line_idx =
   let num_lines = List.length lines in
-  cursor.line <-
-    (if line_idx < 0 then 0
+  let line =
+    if line_idx < 0 then 0
     else if line_idx >= num_lines then num_lines - 1
-    else line_idx);
-  cursor.dirty <- true;
-  cursor
+    else line_idx
+  in
+  { cursor with line; dirty = true }
 
 let set_line_rel cursor lines rel_line =
-  (match cursor.line + rel_line with
-  | n when n < 0 ->
-      (* we can't go back further than the first line. *)
-      cursor.column <- 0;
-      cursor.line <- 0;
-      cursor.desired_column <- no_desired_column
-  | n when n > List.length lines - 1 ->
-      (* we can't go forward further than the last line. *)
-      cursor.line <- List.length lines - 1;
-      cursor.column <- String.length (List.nth lines cursor.line);
-      cursor.desired_column <- no_desired_column
-  | n when n = List.length lines - 1 -> cursor.line <- List.length lines - 1
-  | n -> cursor.line <- n);
+  let cursor =
+    match cursor.line + rel_line with
+    | n when n < 0 ->
+        (* we can't go back further than the first line. *)
+        { cursor with column = 0; line = 0; desired_column = no_desired_column }
+    | n when n > List.length lines - 1 ->
+        (* we can't go forward further than the last line. *)
+        {
+          cursor with
+          line = List.length lines - 1;
+          column = String.length (List.nth lines cursor.line);
+          desired_column = no_desired_column;
+        }
+    | n when n = List.length lines - 1 ->
+        { cursor with line = List.length lines - 1 }
+    | n -> { cursor with line = n }
+  in
 
   (* now figure out what the column should be *)
   let line_length = String.length (List.nth lines cursor.line) in
@@ -102,8 +106,7 @@ let set_line_rel cursor lines rel_line =
       cursor.desired_column <- no_desired_column
   | _ -> ());
 
-  cursor.dirty <- true;
-  cursor
+  { cursor with dirty = true }
 
 let set_column cursor lines column_idx =
   let line_length = String.length (List.nth lines cursor.line) in
@@ -111,35 +114,38 @@ let set_column cursor lines column_idx =
     (if column_idx < 0 then 0
     else if column_idx > line_length then line_length
     else column_idx);
-  cursor.dirty <- true;
-  cursor
+  { cursor with dirty = true }
 
 let rec set_column_rel cursor lines rel_col =
-  (match cursor.column + rel_col with
-  | n when n < 0 ->
-      (* cursor is going backwards over the start of the line *)
-      if cursor.line = 0 then
-        (* we can't go back further than this! *)
-        cursor.column <- 0
-      else (
-        (* wrap to the previous line *)
-        cursor.line <- cursor.line - 1;
-        cursor.column <- String.length (List.nth lines cursor.line);
-        set_column_rel cursor lines (rel_col + 1) |> ignore)
-  | n when n > String.length (List.nth lines cursor.line) ->
-      (* cursor is going forwards over the end of the line *)
-      if cursor.line = List.length lines - 1 then
-        (* we can't go forward further than this! *)
-        cursor.column <- String.length (List.nth lines cursor.line)
-      else (
-        (* wrap to the next line *)
-        cursor.line <- cursor.line + 1;
-        cursor.column <- 0;
-        set_column_rel cursor lines (rel_col - 1) |> ignore)
-  | n -> cursor.column <- n);
-
-  cursor.dirty <- true;
-  cursor
+  let cursor =
+    match cursor.column + rel_col with
+    | n when n < 0 ->
+        (* cursor is going backwards over the start of the line *)
+        if cursor.line = 0 then
+          (* we can't go back further than this! *)
+          { cursor with column = 0 }
+        else
+          (* wrap to the previous line *)
+          set_column_rel
+            {
+              cursor with
+              line = cursor.line - 1;
+              column = String.length (List.nth lines cursor.line);
+            }
+            lines (rel_col + 1)
+    | n when n > String.length (List.nth lines cursor.line) ->
+        (* cursor is going forwards over the end of the line *)
+        if cursor.line = List.length lines - 1 then
+          (* we can't go forward further than this! *)
+          { cursor with column = String.length (List.nth lines cursor.line) }
+        else
+          (* wrap to the next line *)
+          set_column_rel
+            { cursor with line = cursor.line + 1; column = 0 }
+            lines (rel_col - 1)
+    | n -> { cursor with column = n }
+  in
+  { cursor with dirty = true }
 
 let get_column cursor = cursor.column
 let get_line cursor = cursor.line
