@@ -4,15 +4,15 @@ open Helpers
 
 type cursor = {
   line : int;  (** The current line in the document. *)
-  mutable column : int;
+  column : int;
       (** The current column in the document. The column may be between 0 and the length of the current line (inclusive). *)
   dirty : bool;
       (** Indicates whether the cursor should be re-rendered this frame. *)
-  mutable last_blink_time : int;
+  last_blink_time : int;
       (** The time (in ticks) that the last blink state change occurred. *)
-  mutable blink_state : bool;
+  blink_state : bool;
       (** The current blink state. true indicates that the cursor is being shown. *)
-  mutable desired_column : int;
+  desired_column : int;
       (** The column that the should be returned to (if possible) when changing lines. If no column is specifically wanted, then this is set to no_desired_column. *)
 }
 
@@ -29,10 +29,11 @@ let create () =
   }
 
 let process_hook cursor now =
-  if cursor.dirty then (
-    cursor.last_blink_time <- 0;
-    cursor.blink_state <- false)
-  else ();
+  let cursor =
+    if cursor.dirty then
+      { cursor with last_blink_time = 0; blink_state = false }
+    else cursor
+  in
 
   let diff = now - cursor.last_blink_time in
   if diff > 500 then
@@ -89,32 +90,40 @@ let set_line_rel cursor lines rel_line =
 
   (* now figure out what the column should be *)
   let line_length = String.length (List.nth lines cursor.line) in
-  (match
-     ( cursor.column <= line_length,
-       cursor.desired_column <> no_desired_column,
-       cursor.desired_column <= line_length )
-   with
-  | true, true, true ->
-      cursor.column <- cursor.desired_column;
-      cursor.desired_column <- no_desired_column
-  | _, true, false -> cursor.column <- line_length
-  | false, false, _ ->
-      cursor.desired_column <- cursor.column;
-      cursor.column <- line_length
-  | false, true, true ->
-      cursor.column <- cursor.desired_column;
-      cursor.desired_column <- no_desired_column
-  | _ -> ());
+  let cursor =
+    match
+      ( cursor.column <= line_length,
+        cursor.desired_column <> no_desired_column,
+        cursor.desired_column <= line_length )
+    with
+    | true, true, true ->
+        {
+          cursor with
+          column = cursor.desired_column;
+          desired_column = no_desired_column;
+        }
+    | _, true, false -> { cursor with column = line_length }
+    | false, false, _ ->
+        { cursor with desired_column = cursor.column; column = line_length }
+    | false, true, true ->
+        {
+          cursor with
+          column = cursor.desired_column;
+          desired_column = no_desired_column;
+        }
+    | _ -> cursor
+  in
 
   { cursor with dirty = true }
 
 let set_column cursor lines column_idx =
   let line_length = String.length (List.nth lines cursor.line) in
-  cursor.column <-
-    (if column_idx < 0 then 0
+  let column =
+    if column_idx < 0 then 0
     else if column_idx > line_length then line_length
-    else column_idx);
-  { cursor with dirty = true }
+    else column_idx
+  in
+  { cursor with dirty = true; column }
 
 let rec set_column_rel cursor lines rel_col =
   let cursor =
