@@ -10,6 +10,8 @@ type editor_state = {
   renderer : Sdl.renderer;
   font : Ttf.font;
   document : Document.document;
+  document_size : size;
+  document_offset : point;
   continue : bool;
 }
 
@@ -51,14 +53,19 @@ let rec main_loop state =
         {
           state with
           document =
-            Document.prerender_hook state.document state.renderer state.font;
+            Document.prerender_hook state.document state.renderer
+              state.document_offset;
         }
       in
       Document.render_hook state.document state.renderer state.font;
       Sdl.set_render_target state.renderer None >>= fun () ->
       Sdl.render_copy
-        ~src:(Sdl.Rect.create ~x:0 ~y:0 ~w:620 ~h:460)
-        ~dst:(Sdl.Rect.create ~x:10 ~y:10 ~w:620 ~h:460)
+        ~src:
+          (Sdl.Rect.create ~x:0 ~y:0 ~w:state.document_size.w
+             ~h:state.document_size.h)
+        ~dst:
+          (Sdl.Rect.create ~x:state.document_offset.x ~y:state.document_offset.y
+             ~w:state.document_size.w ~h:state.document_size.h)
         state.renderer texture
       >>= fun () ->
       Sdl.render_present state.renderer;
@@ -80,6 +87,8 @@ let main () =
       font = f;
       continue = true;
       document = Document.create_from_file f "./bin/main.ml";
+      document_size = { w = 620; h = 460 };
+      document_offset = { x = 10; y = 10 };
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;

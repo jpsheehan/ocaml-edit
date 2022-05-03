@@ -12,6 +12,7 @@ type document = {
   cursor : Cursor.cursor;
   scroll_offset : Helpers.point;
   viewport_size : Helpers.size;
+  viewport_offset : Helpers.point;
 }
 
 let create_empty font =
@@ -22,6 +23,7 @@ let create_empty font =
     cursor = Cursor.create ();
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
+    viewport_offset = { x = 0; y = 0 };
   }
 
 let create_from_string font text =
@@ -32,6 +34,7 @@ let create_from_string font text =
     cursor = Cursor.create ();
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
+    viewport_offset = { x = 0; y = 0 };
   }
 
 let create_from_file font filename =
@@ -51,10 +54,14 @@ let create_from_file font filename =
     lines = List.rev (read_lines_from_file []);
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
+    viewport_offset = { x = 0; y = 0 };
   }
 
 let convert_mouse_pos_to_cursor_pos doc pos =
-  let line = (pos.y + doc.scroll_offset.y) / Ttf.font_height doc.font in
+  let line =
+    (pos.y + doc.scroll_offset.y - doc.viewport_offset.y)
+    / Ttf.font_height doc.font
+  in
   { x = 0; y = line }
 
 let get_current_line document =
@@ -154,12 +161,13 @@ let process_hook document now (dst_rect : Sdl.rect) =
     viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   }
 
-let prerender_hook document renderer _font =
+let prerender_hook document renderer offset =
   {
     document with
     viewport_size =
       (let r = Sdl.render_get_viewport renderer in
        { w = Sdl.Rect.w r; h = Sdl.Rect.h r });
+    viewport_offset = offset;
   }
 
 let render_hook document renderer font =
