@@ -137,6 +137,7 @@ let scroll_to document point =
 let get_width_of_text doc text = Ttf.size_utf8 doc.font text >>= fun (w, _) -> w
 
 let scroll_cursor_into_view document =
+  let scroll_margin = Ttf.font_height document.font in
   let font_height = Ttf.font_height document.font in
   let desired_line = Cursor.get_line document.cursor in
   let first_visible_line = document.scroll_offset.y / font_height in
@@ -156,8 +157,9 @@ let scroll_cursor_into_view document =
            (Cursor.get_column document.cursor))
     in
     if text_width > document.scroll_offset.x + document.viewport_size.w then
-      document.scroll_offset.x
-    else if text_width < document.scroll_offset.x then text_width
+      text_width - document.viewport_size.w + scroll_margin
+    else if text_width < document.scroll_offset.x then
+      text_width - scroll_margin
     else document.scroll_offset.x
   in
   {

@@ -5,12 +5,12 @@ An experimental editor made using OCaml.
 ## To Do List:
 
 ### Navigation
-- [ ] Horizontal scrolling with cursor (in progress)
-- [ ] Horizontal scrolling with mouse
+- [x] Horizontal scrolling with cursor
+- [ ] Horizontal scrolling with mouse wheel
 - [x] Cursor navigation with mouse
     - [x] Vertical navigation
     - [x] Horizontal navigation
-- [ ] Page up/down (implemented but not working)
+- [ ] Page up/down (implemented but not working, could just be this laptop)
 
 ### Editing
 - [x] Text insertion
