@@ -8,6 +8,8 @@ An experimental editor made using OCaml.
 - [ ] Horizontal scrolling with cursor (in progress)
 - [ ] Horizontal scrolling with mouse
 - [ ] Cursor navigation with mouse
+    - [x] Vertical navigation
+    - [ ] Horizontal navigation
 - [ ] Page up/down (implemented but not working)
 
 ### Editing

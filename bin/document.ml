@@ -57,12 +57,21 @@ let create_from_file font filename =
     viewport_offset = { x = 0; y = 0 };
   }
 
+let get_column_from_pixel doc x line =
+  let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
+  let column = ref 0 in
+  while !column < String.length (List.nth doc.lines line) do
+    Ttf.size_utf8
+    if normalised_x > ()
+
+let get_line_from_pixel doc y =
+  let normalised_y = y + doc.scroll_offset.y - doc.viewport_offset.y in
+  normalised_y / Ttf.font_height doc.font
+
 let convert_mouse_pos_to_cursor_pos doc pos =
-  let line =
-    (pos.y + doc.scroll_offset.y - doc.viewport_offset.y)
-    / Ttf.font_height doc.font
-  in
-  { x = 0; y = line }
+  let line = get_line_from_pixel doc pos.y in
+  let column = get_column_from_pixel doc pos.x line in
+  { x = column; y = line }
 
 let get_current_line document =
   List.nth document.lines (Cursor.get_line document.cursor)
