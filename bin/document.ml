@@ -10,7 +10,7 @@ type document = {
   font : Ttf.font;
   bg : Sdl.color;
   cursor : Cursor.cursor;
-  viewport_offset : Helpers.point;
+  scroll_offset : Helpers.point;
   viewport_size : Helpers.size;
 }
 
@@ -20,7 +20,7 @@ let create_empty font =
     font;
     bg = default_bg_color;
     cursor = Cursor.create ();
-    viewport_offset = { x = 0; y = 0 };
+    scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
 
@@ -30,7 +30,7 @@ let create_from_string font text =
     font;
     bg = default_bg_color;
     cursor = Cursor.create ();
-    viewport_offset = { x = 0; y = 0 };
+    scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
 
@@ -49,9 +49,13 @@ let create_from_file font filename =
     bg = default_bg_color;
     cursor = Cursor.create ();
     lines = List.rev (read_lines_from_file []);
-    viewport_offset = { x = 0; y = 0 };
+    scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
   }
+
+let convert_mouse_pos_to_cursor_pos doc pos =
+  let line = (pos.y + doc.scroll_offset.y) / Ttf.font_height doc.font in
+  { x = 0; y = line }
 
 let get_current_line document =
   List.nth document.lines (Cursor.get_line document.cursor)
@@ -73,8 +77,8 @@ let draw_line_of_text document renderer font line_idx =
     in
     let dst_size =
       Sdl.Rect.create
-        ~x:(-document.viewport_offset.x)
-        ~y:(-document.viewport_offset.y + (line_height * line_idx))
+        ~x:(-document.scroll_offset.x)
+        ~y:(-document.scroll_offset.y + (line_height * line_idx))
         ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
     in
     Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
@@ -86,7 +90,7 @@ let get_num_visible_lines document =
   | h -> h / Ttf.font_height document.font
 
 let get_first_visible_line document =
-  document.viewport_offset.y / Ttf.font_height document.font
+  document.scroll_offset.y / Ttf.font_height document.font
 
 let get_last_visible_line document =
   let line = get_first_visible_line document + get_num_visible_lines document in
@@ -114,7 +118,7 @@ let get_width_of_text doc text = Ttf.size_utf8 doc.font text >>= fun (w, _) -> w
 let scroll_cursor_into_view document =
   let font_height = Ttf.font_height document.font in
   let desired_line = Cursor.get_line document.cursor in
-  let first_visible_line = document.viewport_offset.y / font_height in
+  let first_visible_line = document.scroll_offset.y / font_height in
   let last_visible_line = first_visible_line + get_num_visible_lines document in
   let first_line =
     if desired_line < first_visible_line then Some desired_line
@@ -122,7 +126,6 @@ let scroll_cursor_into_view document =
       Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
-  Printf.printf "Viewport y is %d\n" document.viewport_offset.y;
   let x =
     let text_width =
       get_width_of_text document
@@ -131,16 +134,16 @@ let scroll_cursor_into_view document =
            0
            (Cursor.get_column document.cursor))
     in
-    if text_width > document.viewport_offset.x + document.viewport_size.w then
-      document.viewport_offset.x
-    else if text_width < document.viewport_offset.x then text_width
-    else document.viewport_offset.x
+    if text_width > document.scroll_offset.x + document.viewport_size.w then
+      document.scroll_offset.x
+    else if text_width < document.scroll_offset.x then text_width
+    else document.scroll_offset.x
   in
   {
     document with
-    viewport_offset =
+    scroll_offset =
       (match first_line with
-      | None -> { document.viewport_offset with x }
+      | None -> { document.scroll_offset with x }
       | Some line -> { y = line * font_height; x });
   }
 
@@ -166,7 +169,7 @@ let render_hook document renderer font =
   >>= fun () ->
   Sdl.render_fill_rect renderer None >>= fun () ->
   draw_all_lines document renderer font;
-  Cursor.render_hook document.cursor document.lines document.viewport_offset
+  Cursor.render_hook document.cursor document.lines document.scroll_offset
     renderer font
 
 let insert_text_at_cursor document text =
@@ -327,15 +330,28 @@ let event_hook document e =
   | `Mouse_wheel ->
       {
         document with
-        viewport_offset =
+        scroll_offset =
           scroll_to document
             {
-              document.viewport_offset with
+              document.scroll_offset with
               y =
-                document.viewport_offset.y
+                document.scroll_offset.y
                 + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
             };
       }
+  | `Mouse_button_down ->
+      let cursor_pos =
+        convert_mouse_pos_to_cursor_pos document
+          {
+            x = Sdl.Event.(get e mouse_button_x);
+            y = Sdl.Event.(get e mouse_button_y);
+          }
+      in
+      let cursor =
+        Cursor.set_line document.cursor document.lines cursor_pos.y
+      in
+      let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
+      scroll_cursor_into_view { document with cursor }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       scroll_cursor_into_view (insert_text_at_cursor document text)
