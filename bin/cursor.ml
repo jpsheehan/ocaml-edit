@@ -126,35 +126,34 @@ let set_column cursor lines column_idx =
   { cursor with dirty = true; column }
 
 let rec set_column_rel cursor lines rel_col =
-  let cursor =
-    match cursor.column + rel_col with
-    | n when n < 0 ->
-        (* cursor is going backwards over the start of the line *)
-        if cursor.line = 0 then
-          (* we can't go back further than this! *)
-          { cursor with column = 0 }
-        else
-          (* wrap to the previous line *)
-          set_column_rel
-            {
-              cursor with
-              line = cursor.line - 1;
-              column = String.length (List.nth lines cursor.line);
-            }
-            lines (rel_col + 1)
-    | n when n > String.length (List.nth lines cursor.line) ->
-        (* cursor is going forwards over the end of the line *)
-        if cursor.line = List.length lines - 1 then
-          (* we can't go forward further than this! *)
-          { cursor with column = String.length (List.nth lines cursor.line) }
-        else
-          (* wrap to the next line *)
-          set_column_rel
-            { cursor with line = cursor.line + 1; column = 0 }
-            lines (rel_col - 1)
-    | n -> { cursor with column = n }
-  in
-  { cursor with dirty = true }
+  if rel_col = 0 then cursor
+  else
+    let cursor =
+      match cursor.column + rel_col with
+      | n when n < 0 ->
+          (* cursor is going backwards over the start of the line *)
+          if cursor.line = 0 then
+            (* we can't go back further than this! *)
+            { cursor with column = 0 }
+          else
+            (* wrap to the previous line *)
+            let line = cursor.line - 1 in
+            set_column_rel
+              { cursor with line; column = String.length (List.nth lines line) }
+              lines (rel_col - n)
+      | n when n > String.length (List.nth lines cursor.line) ->
+          (* cursor is going forwards over the end of the line *)
+          if cursor.line = List.length lines - 1 then
+            (* we can't go forward further than this! *)
+            { cursor with column = String.length (List.nth lines cursor.line) }
+          else
+            (* wrap to the next line *)
+            set_column_rel
+              { cursor with line = cursor.line + 1; column = 0 }
+              lines (rel_col - 1)
+      | n -> { cursor with column = n }
+    in
+    { cursor with dirty = true }
 
 let get_column cursor = cursor.column
 let get_line cursor = cursor.line
