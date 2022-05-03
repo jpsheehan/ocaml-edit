@@ -59,10 +59,15 @@ let create_from_file font filename =
 
 let get_column_from_pixel doc x line =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
-  let column = ref 0 in
-  while !column < String.length (List.nth doc.lines line) do
-    Ttf.size_utf8
-    if normalised_x > ()
+  let rec find_column col =
+    let this_line = List.nth doc.lines line in
+    if col > String.length this_line then String.length this_line
+    else
+      Ttf.size_utf8 doc.font (String.sub this_line 0 col) >>= fun (w, _) ->
+      if normalised_x <= w then if col <> 0 then col - 1 else col
+      else find_column (col + 1)
+  in
+  find_column 0
 
 let get_line_from_pixel doc y =
   let normalised_y = y + doc.scroll_offset.y - doc.viewport_offset.y in
