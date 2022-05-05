@@ -71,7 +71,7 @@ let get_column_from_pixel doc x line =
 
 let get_line_from_pixel doc y =
   let normalised_y = y + doc.scroll_offset.y - doc.viewport_offset.y in
-  normalised_y / Ttf.font_height doc.font
+  clamp (normalised_y / Ttf.font_height doc.font) 0 (List.length doc.lines - 1)
 
 let convert_mouse_pos_to_cursor_pos doc pos =
   let line = get_line_from_pixel doc pos.y in
@@ -108,14 +108,14 @@ let draw_line_of_text document renderer font line_idx =
 let get_num_visible_lines document =
   match document.viewport_size.h with
   | 0 -> 0
-  | h -> (h / Ttf.font_height document.font) + 1
+  | h -> h / Ttf.font_height document.font
 
 let get_first_visible_line document =
   document.scroll_offset.y / Ttf.font_height document.font
 
 let get_last_visible_line document =
   let line = get_first_visible_line document + get_num_visible_lines document in
-  clamp line 0 (List.length document.lines)
+  clamp (line + 1) 0 (List.length document.lines)
 
 let draw_all_lines document renderer font =
   for
@@ -148,6 +148,23 @@ let scroll_cursor_into_view document =
       Some (desired_line - get_num_visible_lines document + 1)
     else None
   in
+  let y =
+    match first_line with
+    | Some line -> line * font_height
+    | None -> document.scroll_offset.y
+  in
+  (* Attempt to get a vertical viewport margin *)
+  (* let y =
+       match y with
+       | n when n < document.scroll_offset.y + scroll_margin ->
+           if Cursor.get_line document.cursor <> 0 then n + scroll_margin else n
+       | n
+         when n
+              > document.scroll_offset.y + document.viewport_size.h - scroll_margin
+         ->
+           n - scroll_margin
+       | _ -> y
+     in *)
   let x =
     let text_width =
       get_width_of_text document
@@ -162,13 +179,7 @@ let scroll_cursor_into_view document =
       text_width - scroll_margin
     else document.scroll_offset.x
   in
-  {
-    document with
-    scroll_offset =
-      (match first_line with
-      | None -> { document.scroll_offset with x }
-      | Some line -> { y = line * font_height; x });
-  }
+  { document with scroll_offset = { x; y } }
 
 let process_hook document now (dst_rect : Sdl.rect) =
   {
