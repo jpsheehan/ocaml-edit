@@ -6,10 +6,12 @@ An experimental editor made using OCaml.
 
 ### Navigation
 - [x] Horizontal scrolling with cursor
-- [ ] Horizontal scrolling with mouse wheel
+- [x] Horizontal scrolling with mouse wheel
 - [x] Cursor navigation with mouse
     - [x] Vertical navigation
     - [x] Horizontal navigation
+- [ ] Vertical scrolling with cursor
+    - Apply the idea of a scroll margin
 - [ ] Page up/down (implemented but not working, could just be this laptop)
 
 ### Editing

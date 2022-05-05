@@ -108,7 +108,7 @@ let draw_line_of_text document renderer font line_idx =
 let get_num_visible_lines document =
   match document.viewport_size.h with
   | 0 -> 0
-  | h -> h / Ttf.font_height document.font
+  | h -> (h / Ttf.font_height document.font) + 1
 
 let get_first_visible_line document =
   document.scroll_offset.y / Ttf.font_height document.font
@@ -357,7 +357,9 @@ let event_hook document e =
         scroll_offset =
           scroll_to document
             {
-              document.scroll_offset with
+              x =
+                document.scroll_offset.x
+                + (scroll_speed * -Sdl.Event.(get e mouse_wheel_x));
               y =
                 document.scroll_offset.y
                 + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));

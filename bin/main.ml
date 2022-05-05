@@ -42,7 +42,7 @@ let rec main_loop state =
               (Sdl.render_get_clip_rect state.renderer);
         }
       in
-      Sdl.set_render_draw_color state.renderer 0x33 0x33 0x33 0xff >>= fun () ->
+      Sdl.set_render_draw_color state.renderer 0x22 0x22 0x22 0xff >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
       Sdl.create_texture state.renderer
         (Sdl.get_window_pixel_format state.window)
