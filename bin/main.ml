@@ -36,6 +36,24 @@ let compute_mean xs =
       let sum = List.fold_left ( + ) 0 xs in
       sum / len
 
+let render_performance_counter renderer font perfc =
+  let compute_time = Performance_counter.compute perfc compute_mean in
+  let compute_time = string_of_int compute_time in
+  let compute_time = String.cat compute_time " ms" in
+
+  Ttf.render_text_blended font compute_time
+    (Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff)
+  >>= fun surface ->
+  let surface_w, surface_h = Sdl.get_surface_size surface in
+  Sdl.create_texture_from_surface renderer surface >>= fun texture ->
+  Sdl.render_copy
+    ~dst:
+      (Sdl.Rect.create
+         ~x:(Sdl.Rect.w (Sdl.render_get_viewport renderer) - surface_w - 10)
+         ~y:10 ~w:surface_w ~h:surface_h)
+    renderer texture
+  >>= fun () -> Sdl.destroy_texture texture
+
 let rec main_loop state =
   match state.continue with
   | false -> ()
@@ -87,27 +105,7 @@ let rec main_loop state =
           frame_perfc = Performance_counter.push state.frame_perfc diff;
         }
       in
-      let compute_time =
-        Performance_counter.compute state.frame_perfc compute_mean
-      in
-      let compute_time = string_of_int compute_time in
-      let compute_time = String.cat compute_time " ms" in
-
-      Ttf.render_text_blended state.font compute_time
-        (Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff)
-      >>= fun surface ->
-      let surface_w, surface_h = Sdl.get_surface_size surface in
-      Sdl.create_texture_from_surface state.renderer surface >>= fun texture ->
-      Sdl.render_copy
-        ~dst:
-          (Sdl.Rect.create
-             ~x:
-               (Sdl.Rect.w (Sdl.render_get_viewport state.renderer)
-               - surface_w - 10)
-             ~y:10 ~w:surface_w ~h:surface_h)
-        state.renderer texture
-      >>= fun () ->
-      Sdl.destroy_texture texture;
+      render_performance_counter state.renderer state.font state.frame_perfc;
 
       (* Clean up the frame *)
       Sdl.render_present state.renderer;
