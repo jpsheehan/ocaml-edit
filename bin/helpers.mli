@@ -10,3 +10,5 @@ val replace : 'a list -> int -> 'a -> 'a list
 val insert_after : 'a list -> int -> 'a -> 'a list
 val remove : 'a list -> int -> 'a list
 val split_string_at : string -> int -> string * string
+val init : 'a list -> 'a list
+val last : 'a list -> 'a option

@@ -29,3 +29,8 @@ let split_string_at str n =
   let before = String.sub str 0 n in
   let after = String.sub str n (String.length str - n) in
   (before, after)
+
+let init l = take l (List.length l - 1)
+
+let last l =
+  match skip l (List.length l - 1) with [] -> None | h :: _ -> Some h

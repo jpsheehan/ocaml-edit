@@ -13,6 +13,7 @@ type editor_state = {
   document_size : size;
   document_offset : point;
   continue : bool;
+  frame_perfc : int Performance_counter.performance_counter;
 }
 
 let rec main_event_handler state =
@@ -27,6 +28,13 @@ let rec main_event_handler state =
     in
     main_event_handler state
   else state
+
+let compute_mean xs =
+  match List.length xs with
+  | 0 -> 0
+  | len ->
+      let sum = List.fold_left ( + ) 0 xs in
+      sum / len
 
 let rec main_loop state =
   match state.continue with
@@ -68,8 +76,41 @@ let rec main_loop state =
              ~w:state.document_size.w ~h:state.document_size.h)
         state.renderer texture
       >>= fun () ->
-      Sdl.render_present state.renderer;
       Sdl.destroy_texture texture;
+      Sdl.set_render_target state.renderer None >>= fun () ->
+      (* Do some performance counting *)
+      let end_of_frame = Int32.to_int (Sdl.get_ticks ()) in
+      let diff = end_of_frame - now in
+      let state =
+        {
+          state with
+          frame_perfc = Performance_counter.push state.frame_perfc diff;
+        }
+      in
+      let compute_time =
+        Performance_counter.compute state.frame_perfc compute_mean
+      in
+      let compute_time = string_of_int compute_time in
+      let compute_time = String.cat compute_time " ms" in
+
+      Ttf.render_text_blended state.font compute_time
+        (Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff)
+      >>= fun surface ->
+      let surface_w, surface_h = Sdl.get_surface_size surface in
+      Sdl.create_texture_from_surface state.renderer surface >>= fun texture ->
+      Sdl.render_copy
+        ~dst:
+          (Sdl.Rect.create
+             ~x:
+               (Sdl.Rect.w (Sdl.render_get_viewport state.renderer)
+               - surface_w - 10)
+             ~y:10 ~w:surface_w ~h:surface_h)
+        state.renderer texture
+      >>= fun () ->
+      Sdl.destroy_texture texture;
+
+      (* Clean up the frame *)
+      Sdl.render_present state.renderer;
       Sdl.delay 20l;
       main_loop state
 
@@ -89,6 +130,7 @@ let main () =
       document = Document.create_from_file f "./bin/main.ml";
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
+      frame_perfc = Performance_counter.create 30;
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;
