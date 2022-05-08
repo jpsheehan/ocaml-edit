@@ -13,6 +13,8 @@ type document = {
   scroll_offset : Helpers.point;
   viewport_size : Helpers.size;
   viewport_offset : Helpers.point;
+  text_changed : bool;
+  cached_texture : Sdl.texture option;
 }
 
 let create_empty font =
@@ -24,6 +26,8 @@ let create_empty font =
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
     viewport_offset = { x = 0; y = 0 };
+    text_changed = true;
+    cached_texture = None;
   }
 
 let create_from_string font text =
@@ -35,6 +39,8 @@ let create_from_string font text =
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
     viewport_offset = { x = 0; y = 0 };
+    text_changed = true;
+    cached_texture = None;
   }
 
 let create_from_file font filename =
@@ -55,6 +61,8 @@ let create_from_file font filename =
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
     viewport_offset = { x = 0; y = 0 };
+    text_changed = true;
+    cached_texture = None;
   }
 
 let get_column_from_pixel doc x line =
@@ -179,7 +187,7 @@ let scroll_cursor_into_view document =
       text_width - scroll_margin
     else document.scroll_offset.x
   in
-  { document with scroll_offset = { x; y } }
+  { document with scroll_offset = { x; y }; text_changed = true }
 
 let process_hook document now (dst_rect : Sdl.rect) =
   {
@@ -188,24 +196,38 @@ let process_hook document now (dst_rect : Sdl.rect) =
     viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   }
 
-let prerender_hook document renderer offset =
-  {
-    document with
-    viewport_size =
-      (let r = Sdl.render_get_viewport renderer in
-       { w = Sdl.Rect.w r; h = Sdl.Rect.h r });
-    viewport_offset = offset;
-  }
+let prerender_hook doc _renderer offset size =
+  let doc =
+    match (doc.text_changed, doc.cached_texture) with
+    | true, Some texture ->
+        Sdl.destroy_texture texture;
+        { doc with cached_texture = None }
+    | _ -> doc
+  in
+  { doc with viewport_size = size; viewport_offset = offset }
 
-let render_hook document renderer font =
-  Sdl.set_render_draw_color renderer (Sdl.Color.r document.bg)
-    (Sdl.Color.g document.bg) (Sdl.Color.b document.bg)
-    (Sdl.Color.a document.bg)
-  >>= fun () ->
-  Sdl.render_fill_rect renderer None >>= fun () ->
-  draw_all_lines document renderer font;
-  Cursor.render_hook document.cursor document.lines document.scroll_offset
-    renderer font
+let render_hook doc renderer font pixel_format =
+  let texture =
+    match doc.cached_texture with
+    | Some t -> t
+    | None ->
+        Sdl.create_texture renderer pixel_format Sdl.Texture.access_target
+          ~w:doc.viewport_size.w ~h:doc.viewport_size.h
+        >>= fun texture ->
+        Sdl.set_render_target renderer (Some texture) >>= fun () -> texture
+  in
+  if doc.text_changed = false && doc.cached_texture <> None then (
+    Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
+    ();
+
+    Sdl.set_render_draw_color renderer (Sdl.Color.r doc.bg) (Sdl.Color.g doc.bg)
+      (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
+    >>= fun () ->
+    Sdl.render_fill_rect renderer None >>= fun () ->
+    draw_all_lines doc renderer font;
+    Cursor.render_hook doc.cursor doc.lines doc.scroll_offset renderer font)
+
+let postrender_hook doc = { doc with text_changed = false }
 
 let insert_text_at_cursor document text =
   let before, after =

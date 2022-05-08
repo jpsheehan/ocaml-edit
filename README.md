@@ -24,3 +24,6 @@ An experimental editor made using OCaml.
 - [ ] Widgets (TODO: Expand on this)
 - [ ] Line numbers
 - [ ] Syntax highlighting?
+
+### Performance
+- [ ] Cache the texture if unchanged
