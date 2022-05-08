@@ -4,6 +4,11 @@ open Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 14
+let target_fps = 30
+let target_mspf = target_fps / 1000
+let red = Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff
+let orange = Sdl.Color.create ~r:0xff ~g:0xff ~b:0x00 ~a:0xff
+let green = Sdl.Color.create ~r:0x00 ~g:0xff ~b:0x00 ~a:0xff
 
 type editor_state = {
   window : Sdl.window;
@@ -38,12 +43,17 @@ let compute_mean xs =
 
 let render_performance_counter renderer font perfc =
   let compute_time = Performance_counter.compute perfc compute_mean in
-  let compute_time = string_of_int compute_time in
-  let compute_time = String.cat compute_time " ms" in
+  let compute_time_str = string_of_int compute_time in
+  let compute_time_str = String.cat compute_time_str " ms" in
 
-  Ttf.render_text_blended font compute_time
-    (Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff)
-  >>= fun surface ->
+  let color =
+    match compute_time with
+    | n when n < int_of_float (float_of_int target_mspf *. 0.8) -> green
+    | n when n < target_mspf -> orange
+    | _ -> red
+  in
+
+  Ttf.render_text_blended font compute_time_str color >>= fun surface ->
   let surface_w, surface_h = Sdl.get_surface_size surface in
   Sdl.create_texture_from_surface renderer surface >>= fun texture ->
   Sdl.render_copy
@@ -109,7 +119,9 @@ let rec main_loop state =
 
       (* Clean up the frame *)
       Sdl.render_present state.renderer;
-      Sdl.delay 20l;
+      (match diff with
+      | n when n <= 0 -> ()
+      | _ -> Sdl.delay (Int32.of_int diff));
       main_loop state
 
 let main () =
