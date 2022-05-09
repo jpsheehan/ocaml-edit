@@ -196,38 +196,42 @@ let process_hook document now (dst_rect : Sdl.rect) =
     viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   }
 
-let prerender_hook doc _renderer offset size =
+let prerender_hook doc renderer offset size pixel_format =
+  Printf.printf "Prerender started\n";
+  (match (doc.text_changed, doc.cached_texture) with
+  | true, Some texture -> Sdl.destroy_texture texture
+  | _ -> ());
   let doc =
-    match (doc.text_changed, doc.cached_texture) with
-    | true, Some texture ->
-        Sdl.destroy_texture texture;
-        { doc with cached_texture = None }
+    match doc.cached_texture with
+    | None ->
+        Printf.printf "Created new texture of size %dx%d\n" size.w size.h;
+        let new_texture =
+          Sdl.create_texture renderer pixel_format Sdl.Texture.access_target
+            ~w:size.w ~h:size.h
+          >>= fun texture -> texture
+        in
+        { doc with cached_texture = Some new_texture }
     | _ -> doc
   in
+  Printf.printf "Finished prerender\n";
   { doc with viewport_size = size; viewport_offset = offset }
 
-let render_hook doc renderer font pixel_format =
-  let texture =
-    match doc.cached_texture with
-    | Some t -> t
-    | None ->
-        Sdl.create_texture renderer pixel_format Sdl.Texture.access_target
-          ~w:doc.viewport_size.w ~h:doc.viewport_size.h
-        >>= fun texture ->
-        Sdl.set_render_target renderer (Some texture) >>= fun () -> texture
-  in
-  if doc.text_changed = false && doc.cached_texture <> None then (
+let render_hook doc renderer font =
+  Printf.printf "Started render\n";
+  if doc.text_changed = false then (
     Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
-    ();
-
     Sdl.set_render_draw_color renderer (Sdl.Color.r doc.bg) (Sdl.Color.g doc.bg)
       (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
     >>= fun () ->
     Sdl.render_fill_rect renderer None >>= fun () ->
     draw_all_lines doc renderer font;
-    Cursor.render_hook doc.cursor doc.lines doc.scroll_offset renderer font)
+    Cursor.render_hook doc.cursor doc.lines doc.scroll_offset renderer font);
+  Printf.printf "Finished render\n";
+  doc.cached_texture
 
-let postrender_hook doc = { doc with text_changed = false }
+let postrender_hook doc =
+  Printf.printf "Started and finished postrender\n";
+  { doc with text_changed = false }
 
 let insert_text_at_cursor document text =
   let before, after =
@@ -241,6 +245,7 @@ let insert_text_at_cursor document text =
     document with
     lines;
     cursor = Cursor.set_column_rel document.cursor lines (String.length text);
+    text_changed = true;
   }
 
 let insert_newline_at_cursor document =
@@ -255,7 +260,7 @@ let insert_newline_at_cursor document =
   let lines = insert_after lines (Cursor.get_line document.cursor) new_line in
   let cursor = Cursor.set_column document.cursor lines 0 in
   let cursor = Cursor.set_line_rel cursor lines 1 in
-  { document with lines; cursor }
+  { document with lines; cursor; text_changed = true }
 
 let remove_char_after_cursor document =
   if
@@ -275,7 +280,7 @@ let remove_char_after_cursor document =
         replace document.lines (Cursor.get_line document.cursor) changed_line
       in
       let lines = remove lines (Cursor.get_line document.cursor + 1) in
-      { document with lines }
+      { document with lines; text_changed = true }
   else
     (* Delete in middle of line *)
     let before, after =
@@ -289,7 +294,7 @@ let remove_char_after_cursor document =
     let lines =
       replace document.lines (Cursor.get_line document.cursor) changed_line
     in
-    { document with lines }
+    { document with lines; text_changed = true }
 
 let remove_char_before_cursor document =
   if Cursor.get_column document.cursor = 0 then
@@ -326,7 +331,7 @@ let remove_char_before_cursor document =
       replace document.lines (Cursor.get_line document.cursor) changed_line
     in
     let cursor = Cursor.set_column_rel document.cursor lines (-1) in
-    { document with lines; cursor }
+    { document with lines; cursor; text_changed = true }
 
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
@@ -335,30 +340,35 @@ let event_hook document e =
         {
           document with
           cursor = Cursor.set_column_rel document.cursor document.lines (-1);
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_column_rel document.cursor document.lines 1;
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_line_rel document.cursor document.lines (-1);
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_line_rel document.cursor document.lines 1;
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_column document.cursor document.lines 0;
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
       scroll_cursor_into_view
@@ -367,6 +377,7 @@ let event_hook document e =
           cursor =
             Cursor.set_column document.cursor document.lines
               (String.length (get_current_line document));
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
       scroll_cursor_into_view
@@ -375,6 +386,7 @@ let event_hook document e =
           cursor =
             Cursor.set_line_rel document.cursor document.lines
               (-get_num_visible_lines document);
+          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
       scroll_cursor_into_view
@@ -383,6 +395,7 @@ let event_hook document e =
           cursor =
             Cursor.set_line_rel document.cursor document.lines
               (get_num_visible_lines document);
+          text_changed = true;
         }
   | `Mouse_wheel ->
       {
@@ -397,6 +410,7 @@ let event_hook document e =
                 document.scroll_offset.y
                 + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
             };
+        text_changed = true;
       }
   | `Mouse_button_down ->
       let cursor_pos =
@@ -410,7 +424,7 @@ let event_hook document e =
         Cursor.set_line document.cursor document.lines cursor_pos.y
       in
       let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
-      scroll_cursor_into_view { document with cursor }
+      scroll_cursor_into_view { document with cursor; text_changed = true }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       scroll_cursor_into_view (insert_text_at_cursor document text)

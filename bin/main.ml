@@ -80,31 +80,33 @@ let rec main_loop state =
       in
       Sdl.set_render_draw_color state.renderer 0x22 0x22 0x22 0xff >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
-      Sdl.create_texture state.renderer
-        (Sdl.get_window_pixel_format state.window)
-        Sdl.Texture.access_target ~w:620 ~h:460
-      >>= fun texture ->
-      Sdl.set_render_target state.renderer (Some texture) >>= fun () ->
       let state =
         {
           state with
           document =
             Document.prerender_hook state.document state.renderer
-              state.document_offset;
+              state.document_offset state.document_size
+              (Sdl.get_window_pixel_format state.window);
         }
       in
-      Document.render_hook state.document state.renderer state.font;
-      Sdl.set_render_target state.renderer None >>= fun () ->
-      Sdl.render_copy
-        ~src:
-          (Sdl.Rect.create ~x:0 ~y:0 ~w:state.document_size.w
-             ~h:state.document_size.h)
-        ~dst:
-          (Sdl.Rect.create ~x:state.document_offset.x ~y:state.document_offset.y
-             ~w:state.document_size.w ~h:state.document_size.h)
-        state.renderer texture
-      >>= fun () ->
-      Sdl.destroy_texture texture;
+      (match Document.render_hook state.document state.renderer state.font with
+      | None -> Printf.printf "Warning: texture was None\n"
+      | Some texture ->
+          Sdl.set_render_target state.renderer None >>= fun () ->
+          Printf.printf "Performing render copy\n";
+          Sdl.render_copy
+            ~src:
+              (Sdl.Rect.create ~x:0 ~y:0 ~w:state.document_size.w
+                 ~h:state.document_size.h)
+            ~dst:
+              (Sdl.Rect.create ~x:state.document_offset.x
+                 ~y:state.document_offset.y ~w:state.document_size.w
+                 ~h:state.document_size.h)
+            state.renderer texture
+          >>= fun () -> Printf.printf "Finished render copy\n");
+      let state =
+        { state with document = Document.postrender_hook state.document }
+      in
       Sdl.set_render_target state.renderer None >>= fun () ->
       (* Do some performance counting *)
       let end_of_frame = Int32.to_int (Sdl.get_ticks ()) in
