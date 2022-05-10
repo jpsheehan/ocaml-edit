@@ -14,6 +14,7 @@ type cursor = {
       (** The current blink state. true indicates that the cursor is being shown. *)
   desired_column : int;
       (** The column that the should be returned to (if possible) when changing lines. If no column is specifically wanted, then this is set to no_desired_column. *)
+  selection_end : (int * int) option;
 }
 
 let no_desired_column = -1
@@ -26,6 +27,7 @@ let create () =
     last_blink_time = 0;
     dirty = true;
     desired_column = no_desired_column;
+    selection_end = None;
   }
 
 let process_hook cursor now =
@@ -38,9 +40,7 @@ let process_hook cursor now =
   let diff = now - cursor.last_blink_time in
   if diff > 500 then
     {
-      column = cursor.column;
-      line = cursor.line;
-      desired_column = cursor.desired_column;
+      cursor with
       last_blink_time = now;
       dirty = true;
       blink_state = not cursor.blink_state;
@@ -160,3 +160,20 @@ let rec set_column_rel cursor lines rel_col =
 let get_column cursor = cursor.column
 let get_line cursor = cursor.line
 let is_dirty cursor = cursor.dirty
+
+(* Selection stuff *)
+let select_none cursor = { cursor with selection_end = None }
+
+let select_all cursor lines =
+  let row = List.length lines - 1 in
+  let col = String.length (List.nth lines row) in
+  { cursor with selection_end = Some (row, col); line = 0; column = 0 }
+
+let set_selection_end cursor lines row col =
+  let row = if row >= List.length lines then List.length lines - 1 else row in
+  let line = List.nth lines row in
+  let col = if col > String.length line then String.length line else row in
+  { cursor with selection_end = Some (row, col) }
+
+let set_selection_end_rel cursor lines row col =
+  set_selection_end cursor lines (cursor.line + row) (cursor.column + col)

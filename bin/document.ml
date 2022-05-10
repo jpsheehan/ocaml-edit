@@ -15,6 +15,7 @@ type document = {
   viewport_offset : Helpers.point;
   text_changed : bool;
   cached_texture : Sdl.texture option;
+  shift_pressed : bool;
 }
 
 let create_empty font =
@@ -28,6 +29,7 @@ let create_empty font =
     viewport_offset = { x = 0; y = 0 };
     text_changed = true;
     cached_texture = None;
+    shift_pressed = false;
   }
 
 let create_from_string font text =
@@ -41,6 +43,7 @@ let create_from_string font text =
     viewport_offset = { x = 0; y = 0 };
     text_changed = true;
     cached_texture = None;
+    shift_pressed = false;
   }
 
 let create_from_file font filename =
@@ -63,6 +66,7 @@ let create_from_file font filename =
     viewport_offset = { x = 0; y = 0 };
     text_changed = true;
     cached_texture = None;
+    shift_pressed = false;
   }
 
 let get_column_from_pixel doc x line =
@@ -389,6 +393,10 @@ let event_hook document e =
             Cursor.set_line_rel document.cursor document.lines
               (get_num_visible_lines document);
         }
+  | `Key_down when Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.shift ->
+      { document with shift_pressed = true }
+  | `Key_up when Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.shift ->
+      { document with shift_pressed = false }
   | `Mouse_wheel ->
       {
         document with
@@ -412,6 +420,7 @@ let event_hook document e =
             y = Sdl.Event.(get e mouse_button_y);
           }
       in
+
       let cursor =
         Cursor.set_line document.cursor document.lines cursor_pos.y
       in
