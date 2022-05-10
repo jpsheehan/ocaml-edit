@@ -32,7 +32,18 @@ let rec main_event_handler state =
       | `Window_event
         when Sdl.Event.(get e window_event_id) = Sdl.Event.window_event_resized
         ->
-          { state with document_size = { w = 640; h = 480 } }
+          {
+            state with
+            document_size =
+              {
+                w =
+                  Int32.to_int Sdl.Event.(get e window_data1)
+                  - (2 * state.document_offset.x);
+                h =
+                  Int32.to_int Sdl.Event.(get e window_data2)
+                  - (2 * state.document_offset.y);
+              };
+          }
       | _ -> { state with document = Document.event_hook state.document e }
     in
     main_event_handler state

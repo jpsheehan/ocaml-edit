@@ -24,6 +24,7 @@ An experimental editor made using OCaml.
 - [ ] Widgets (TODO: Expand on this)
 - [ ] Line numbers
 - [ ] Syntax highlighting?
+- [x] Window resize event
 
 ### Performance
-- [ ] Cache the texture if unchanged
+- [x] Cache the document texture if unchanged
