@@ -3,7 +3,7 @@ open Tsdl_ttf
 open Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
-let font_size = 14
+let font_size = 12
 let target_fps = 60
 let target_mspf = 1000 / target_fps
 let red = Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff
@@ -29,6 +29,10 @@ let rec main_event_handler state =
       | `Quit -> { state with continue = false }
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.escape ->
           { state with continue = false }
+      | `Window_event
+        when Sdl.Event.(get e window_event_id) = Sdl.Event.window_event_resized
+        ->
+          { state with document_size = { w = 640; h = 480 } }
       | _ -> { state with document = Document.event_hook state.document e }
     in
     main_event_handler state
