@@ -2,7 +2,7 @@ open Tsdl
 open Tsdl_ttf
 open Helpers
 
-let scroll_speed = 10
+let scroll_speed = 20
 let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff
 
 type document = {
@@ -198,7 +198,9 @@ let process_hook document now (dst_rect : Sdl.rect) =
 
 let prerender_hook doc renderer offset size pixel_format =
   let doc =
-    match (doc.text_changed, doc.cached_texture) with
+    match
+      (doc.text_changed || Cursor.is_dirty doc.cursor, doc.cached_texture)
+    with
     | true, Some texture ->
         Sdl.destroy_texture texture;
         { doc with cached_texture = None }
@@ -218,7 +220,7 @@ let prerender_hook doc renderer offset size pixel_format =
   { doc with viewport_size = size; viewport_offset = offset }
 
 let render_hook doc renderer font =
-  if doc.text_changed then (
+  if doc.text_changed || Cursor.is_dirty doc.cursor then (
     Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
     Sdl.set_render_draw_color renderer (Sdl.Color.r doc.bg) (Sdl.Color.g doc.bg)
       (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
@@ -228,7 +230,8 @@ let render_hook doc renderer font =
     Cursor.render_hook doc.cursor doc.lines doc.scroll_offset renderer font);
   doc.cached_texture
 
-let postrender_hook doc = { doc with text_changed = false }
+let postrender_hook doc =
+  { doc with text_changed = false; cursor = Cursor.postrender_hook doc.cursor }
 
 let insert_text_at_cursor document text =
   let before, after =
@@ -337,35 +340,30 @@ let event_hook document e =
         {
           document with
           cursor = Cursor.set_column_rel document.cursor document.lines (-1);
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_column_rel document.cursor document.lines 1;
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_line_rel document.cursor document.lines (-1);
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_line_rel document.cursor document.lines 1;
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
       scroll_cursor_into_view
         {
           document with
           cursor = Cursor.set_column document.cursor document.lines 0;
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
       scroll_cursor_into_view
@@ -374,7 +372,6 @@ let event_hook document e =
           cursor =
             Cursor.set_column document.cursor document.lines
               (String.length (get_current_line document));
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
       scroll_cursor_into_view
@@ -383,7 +380,6 @@ let event_hook document e =
           cursor =
             Cursor.set_line_rel document.cursor document.lines
               (-get_num_visible_lines document);
-          text_changed = true;
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
       scroll_cursor_into_view
@@ -392,7 +388,6 @@ let event_hook document e =
           cursor =
             Cursor.set_line_rel document.cursor document.lines
               (get_num_visible_lines document);
-          text_changed = true;
         }
   | `Mouse_wheel ->
       {
@@ -421,7 +416,7 @@ let event_hook document e =
         Cursor.set_line document.cursor document.lines cursor_pos.y
       in
       let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
-      scroll_cursor_into_view { document with cursor; text_changed = true }
+      scroll_cursor_into_view { document with cursor }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       scroll_cursor_into_view (insert_text_at_cursor document text)

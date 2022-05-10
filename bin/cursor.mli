@@ -33,3 +33,6 @@ val get_column : cursor -> int
 
 val get_line : cursor -> int
 (** Gets the cursor's line. *)
+
+val is_dirty : cursor -> bool
+val postrender_hook : cursor -> cursor

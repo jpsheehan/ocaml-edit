@@ -42,10 +42,12 @@ let process_hook cursor now =
       line = cursor.line;
       desired_column = cursor.desired_column;
       last_blink_time = now;
-      dirty = false;
+      dirty = true;
       blink_state = not cursor.blink_state;
     }
   else cursor
+
+let postrender_hook cursor = { cursor with dirty = false }
 
 let render_hook cursor lines viewport_offset renderer font =
   if cursor.blink_state then
@@ -157,3 +159,4 @@ let rec set_column_rel cursor lines rel_col =
 
 let get_column cursor = cursor.column
 let get_line cursor = cursor.line
+let is_dirty cursor = cursor.dirty
