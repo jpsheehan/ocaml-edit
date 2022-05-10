@@ -197,14 +197,16 @@ let process_hook document now (dst_rect : Sdl.rect) =
   }
 
 let prerender_hook doc renderer offset size pixel_format =
-  Printf.printf "Prerender started\n";
-  (match (doc.text_changed, doc.cached_texture) with
-  | true, Some texture -> Sdl.destroy_texture texture
-  | _ -> ());
+  let doc =
+    match (doc.text_changed, doc.cached_texture) with
+    | true, Some texture ->
+        Sdl.destroy_texture texture;
+        { doc with cached_texture = None }
+    | _ -> doc
+  in
   let doc =
     match doc.cached_texture with
     | None ->
-        Printf.printf "Created new texture of size %dx%d\n" size.w size.h;
         let new_texture =
           Sdl.create_texture renderer pixel_format Sdl.Texture.access_target
             ~w:size.w ~h:size.h
@@ -213,12 +215,10 @@ let prerender_hook doc renderer offset size pixel_format =
         { doc with cached_texture = Some new_texture }
     | _ -> doc
   in
-  Printf.printf "Finished prerender\n";
   { doc with viewport_size = size; viewport_offset = offset }
 
 let render_hook doc renderer font =
-  Printf.printf "Started render\n";
-  if doc.text_changed = false then (
+  if doc.text_changed then (
     Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
     Sdl.set_render_draw_color renderer (Sdl.Color.r doc.bg) (Sdl.Color.g doc.bg)
       (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
@@ -226,12 +226,9 @@ let render_hook doc renderer font =
     Sdl.render_fill_rect renderer None >>= fun () ->
     draw_all_lines doc renderer font;
     Cursor.render_hook doc.cursor doc.lines doc.scroll_offset renderer font);
-  Printf.printf "Finished render\n";
   doc.cached_texture
 
-let postrender_hook doc =
-  Printf.printf "Started and finished postrender\n";
-  { doc with text_changed = false }
+let postrender_hook doc = { doc with text_changed = false }
 
 let insert_text_at_cursor document text =
   let before, after =

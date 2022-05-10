@@ -93,7 +93,6 @@ let rec main_loop state =
       | None -> Printf.printf "Warning: texture was None\n"
       | Some texture ->
           Sdl.set_render_target state.renderer None >>= fun () ->
-          Printf.printf "Performing render copy\n";
           Sdl.render_copy
             ~src:
               (Sdl.Rect.create ~x:0 ~y:0 ~w:state.document_size.w
@@ -103,11 +102,12 @@ let rec main_loop state =
                  ~y:state.document_offset.y ~w:state.document_size.w
                  ~h:state.document_size.h)
             state.renderer texture
-          >>= fun () -> Printf.printf "Finished render copy\n");
+          >>= fun () ->
+          Sdl.set_render_target state.renderer None >>= fun () -> ());
       let state =
         { state with document = Document.postrender_hook state.document }
       in
-      Sdl.set_render_target state.renderer None >>= fun () ->
+
       (* Do some performance counting *)
       let end_of_frame = Int32.to_int (Sdl.get_ticks ()) in
       let diff = end_of_frame - now in
@@ -142,7 +142,7 @@ let main () =
       document = Document.create_from_file f "./bin/main.ml";
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
-      frame_perfc = Performance_counter.create 30;
+      frame_perfc = Performance_counter.create target_fps;
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;
