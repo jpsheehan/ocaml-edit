@@ -340,57 +340,56 @@ let remove_char_before_cursor document =
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
         {
           document with
-          cursor = Cursor.set_column_rel document.cursor document.lines (-1);
+          cursor = Cursor.set_column_rel cursor document.lines (-1);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
-        {
-          document with
-          cursor = Cursor.set_column_rel document.cursor document.lines 1;
-        }
+        { document with cursor = Cursor.set_column_rel cursor document.lines 1 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
         {
           document with
-          cursor = Cursor.set_line_rel document.cursor document.lines (-1);
+          cursor = Cursor.set_line_rel cursor document.lines (-1);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
-        {
-          document with
-          cursor = Cursor.set_line_rel document.cursor document.lines 1;
-        }
+        { document with cursor = Cursor.set_line_rel cursor document.lines 1 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
-        {
-          document with
-          cursor = Cursor.set_column document.cursor document.lines 0;
-        }
+        { document with cursor = Cursor.set_column cursor document.lines 0 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
         {
           document with
           cursor =
-            Cursor.set_column document.cursor document.lines
+            Cursor.set_column cursor document.lines
               (String.length (get_current_line document));
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
         {
           document with
           cursor =
-            Cursor.set_line_rel document.cursor document.lines
+            Cursor.set_line_rel cursor document.lines
               (-get_num_visible_lines document);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
+      let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
         {
           document with
           cursor =
-            Cursor.set_line_rel document.cursor document.lines
+            Cursor.set_line_rel cursor document.lines
               (get_num_visible_lines document);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.shift ->
@@ -420,12 +419,19 @@ let event_hook document e =
             y = Sdl.Event.(get e mouse_button_y);
           }
       in
-
-      let cursor =
-        Cursor.set_line document.cursor document.lines cursor_pos.y
-      in
-      let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
-      scroll_cursor_into_view { document with cursor }
+      if not document.shift_pressed then
+        let cursor =
+          Cursor.set_line document.cursor document.lines cursor_pos.y
+        in
+        let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
+        let cursor = Cursor.select_none cursor in
+        scroll_cursor_into_view { document with cursor }
+      else
+        let cursor =
+          Cursor.set_selection_end document.cursor document.lines cursor_pos.y
+            cursor_pos.x
+        in
+        { document with cursor }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       scroll_cursor_into_view (insert_text_at_cursor document text)

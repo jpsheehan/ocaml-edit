@@ -49,18 +49,32 @@ let process_hook cursor now =
 
 let postrender_hook cursor = { cursor with dirty = false }
 
+let render_caret row col lines viewport_offset renderer font =
+  let line_so_far = String.sub (List.nth lines row) 0 col in
+  let line_height = Ttf.font_height font in
+  Ttf.size_text font line_so_far >>= fun (w, h) ->
+  Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
+  Sdl.render_draw_line renderer (w - viewport_offset.x)
+    ((row * line_height) - viewport_offset.y)
+    (w - viewport_offset.x)
+    ((row * line_height) + h - viewport_offset.y)
+  >>= fun () -> ()
+
+let render_selection (start_row, start_col) (end_row, end_col) lines
+    viewport_offset renderer font =
+  render_caret start_row start_col lines viewport_offset renderer font;
+  render_caret end_row end_col lines viewport_offset renderer font
+
 let render_hook cursor lines viewport_offset renderer font =
   if cursor.blink_state then
-    let line_so_far = String.sub (List.nth lines cursor.line) 0 cursor.column in
-    let line_height = Ttf.font_height font in
-    Ttf.size_text font line_so_far >>= fun (w, h) ->
-    Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-    Sdl.render_draw_line renderer (w - viewport_offset.x)
-      ((cursor.line * line_height) - viewport_offset.y)
-      (w - viewport_offset.x)
-      ((cursor.line * line_height) + h - viewport_offset.y)
-    >>= fun () -> ()
-  else ()
+    match cursor.selection_end with
+    | None ->
+        render_caret cursor.line cursor.column lines viewport_offset renderer
+          font
+    | Some (row, col) ->
+        render_selection
+          (cursor.line, cursor.column)
+          (row, col) lines viewport_offset renderer font
 
 let set_line cursor lines line_idx =
   let num_lines = List.length lines in
