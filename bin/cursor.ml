@@ -49,14 +49,14 @@ let process_hook cursor now =
 
 let postrender_hook cursor = { cursor with dirty = false }
 
-let render_caret (row, col) lines viewport_offset renderer font =
+let render_caret (row, col) lines scroll_offset renderer font =
   let line_so_far = String.sub (List.nth lines row) 0 col in
   let line_height = Ttf.font_height font in
   Ttf.size_text font line_so_far >>= fun (w, h) ->
-  Sdl.render_draw_line renderer (w - viewport_offset.x)
-    ((row * line_height) - viewport_offset.y)
-    (w - viewport_offset.x)
-    ((row * line_height) + h - viewport_offset.y)
+  Sdl.render_draw_line renderer (w + scroll_offset.x)
+    ((row * line_height) + scroll_offset.y)
+    (w + scroll_offset.x)
+    ((row * line_height) + h + scroll_offset.y)
   >>= fun () -> ()
 
 let compair (ar, ac) (br, bc) =
@@ -66,7 +66,7 @@ let compair (ar, ac) (br, bc) =
   else if ac > bc then 1
   else 0
 
-let render_selection a b lines viewport_offset renderer font =
+let render_selection a b lines scroll_offset renderer font =
   match List.sort compair [ a; b ] with
   | [ (frow, fcol); (srow, scol) ] ->
       Sdl.set_render_draw_color renderer 0x55 0x55 0x55 0xff >>= fun () ->
@@ -77,17 +77,17 @@ let render_selection a b lines viewport_offset renderer font =
           let line = List.nth lines row in
           let first_col = if row = frow then fcol else 0 in
           let min_x =
-            viewport_offset.x
-            + get_width_of_text font (String.sub line 0 first_col)
+            get_width_of_text font (String.sub line 0 first_col)
+            - scroll_offset.x
           in
           let last_col = if row = srow then scol else String.length line in
           let max_x =
-            viewport_offset.x
-            + get_width_of_text font (String.sub line 0 last_col)
+            get_width_of_text font (String.sub line 0 last_col)
+            - scroll_offset.x
           in
           let width = max_x - min_x in
           let height = Ttf.font_height font in
-          let y = (height * row) + viewport_offset.y in
+          let y = (height * row) - scroll_offset.y in
           Sdl.render_fill_rect renderer
             (Some (Sdl.Rect.create ~x:min_x ~y ~w:width ~h:height))
           >>= fun () ->
@@ -99,14 +99,14 @@ let render_selection a b lines viewport_offset renderer font =
       ()
   | _ -> failwith "Could not compair cursor_pos"
 
-let render_hook cursor lines viewport_offset renderer font =
+let render_hook cursor lines scroll_offset renderer font =
   match cursor.selection_end with
   | None ->
       if cursor.blink_state then
         Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-        render_caret cursor.pos lines viewport_offset renderer font
+        render_caret cursor.pos lines scroll_offset renderer font
   | Some selection_pos ->
-      render_selection cursor.pos selection_pos lines viewport_offset renderer
+      render_selection cursor.pos selection_pos lines scroll_offset renderer
         font
 
 let get_selection cursor =
