@@ -392,9 +392,9 @@ let event_hook document e =
             Cursor.set_line_rel cursor document.lines
               (get_num_visible_lines document);
         }
-  | `Key_down when Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.shift ->
+  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
       { document with shift_pressed = true }
-  | `Key_up when Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.shift ->
+  | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
       { document with shift_pressed = false }
   | `Mouse_wheel ->
       {
@@ -411,7 +411,7 @@ let event_hook document e =
             };
         text_changed = true;
       }
-  | `Mouse_button_down ->
+  | `Mouse_button_down when Sdl.Event.(get e mouse_button_button) = 1 ->
       let cursor_pos =
         convert_mouse_pos_to_cursor_pos document
           {
