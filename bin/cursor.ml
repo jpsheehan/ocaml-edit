@@ -53,10 +53,10 @@ let render_caret (row, col) lines scroll_offset renderer font =
   let line_so_far = String.sub (List.nth lines row) 0 col in
   let line_height = Ttf.font_height font in
   Ttf.size_text font line_so_far >>= fun (w, h) ->
-  Sdl.render_draw_line renderer (w + scroll_offset.x)
-    ((row * line_height) + scroll_offset.y)
-    (w + scroll_offset.x)
-    ((row * line_height) + h + scroll_offset.y)
+  Sdl.render_draw_line renderer (w - scroll_offset.x)
+    ((row * line_height) - scroll_offset.y)
+    (w - scroll_offset.x)
+    ((row * line_height) + h - scroll_offset.y)
   >>= fun () -> ()
 
 let compair (ar, ac) (br, bc) =

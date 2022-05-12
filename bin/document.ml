@@ -295,19 +295,16 @@ let insert_or_replace_text_at_cursor doc text =
   in
   insert_text_at_cursor doc text
 
-let insert_newline_at_cursor document =
+let insert_newline_at_cursor doc =
+  let doc = remove_selection doc in
   let changed_line, new_line =
-    split_string_at
-      (get_current_line document)
-      (Cursor.get_column document.cursor)
+    split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
-  let lines =
-    replace document.lines (Cursor.get_line document.cursor) changed_line
-  in
-  let lines = insert_after lines (Cursor.get_line document.cursor) new_line in
-  let cursor = Cursor.set_column document.cursor lines 0 in
+  let lines = replace doc.lines (Cursor.get_line doc.cursor) changed_line in
+  let lines = insert_after lines (Cursor.get_line doc.cursor) new_line in
+  let cursor = Cursor.set_column doc.cursor lines 0 in
   let cursor = Cursor.set_line_rel cursor lines 1 in
-  { document with lines; cursor; text_changed = true }
+  { doc with lines; cursor; text_changed = true }
 
 let remove_char_after_cursor document =
   if Cursor.has_selection document.cursor then remove_selection document
