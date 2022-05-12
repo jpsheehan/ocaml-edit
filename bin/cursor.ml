@@ -53,22 +53,34 @@ let render_caret (row, col) lines viewport_offset renderer font =
   let line_so_far = String.sub (List.nth lines row) 0 col in
   let line_height = Ttf.font_height font in
   Ttf.size_text font line_so_far >>= fun (w, h) ->
-  Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
   Sdl.render_draw_line renderer (w - viewport_offset.x)
     ((row * line_height) - viewport_offset.y)
     (w - viewport_offset.x)
     ((row * line_height) + h - viewport_offset.y)
   >>= fun () -> ()
 
-let render_selection (start_row, start_col) (end_row, end_col) lines
-    viewport_offset renderer font =
-  render_caret (start_row, start_col) lines viewport_offset renderer font;
-  render_caret (end_row, end_col) lines viewport_offset renderer font
+let compair (ar, ac) (br, bc) =
+  if ar < br then -1
+  else if ar > br then 1
+  else if ac < bc then -1
+  else if ac > bc then 1
+  else 0
+
+let render_selection a b lines viewport_offset renderer font =
+  match List.sort compair [ a; b ] with
+  | [ first; second ] ->
+      Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
+      render_caret first lines viewport_offset renderer font;
+      Sdl.set_render_draw_color renderer 0x55 0xff 0x55 0xff >>= fun () ->
+      render_caret second lines viewport_offset renderer font
+  | _ -> failwith "Could not compair cursor_pos"
 
 let render_hook cursor lines viewport_offset renderer font =
   if cursor.blink_state then
     match cursor.selection_end with
-    | None -> render_caret cursor.pos lines viewport_offset renderer font
+    | None ->
+        Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
+        render_caret cursor.pos lines viewport_offset renderer font
     | Some selection_pos ->
         render_selection cursor.pos selection_pos lines viewport_offset renderer
           font
@@ -192,7 +204,8 @@ let set_selection_end cursor lines (row, col) =
   let row = if row >= List.length lines then List.length lines - 1 else row in
   let line = List.nth lines row in
   let col = if col > String.length line then String.length line else col in
-  { cursor with selection_end = Some (row, col) }
+  if compair (row, col) cursor.pos = 0 then { cursor with selection_end = None }
+  else { cursor with selection_end = Some (row, col) }
 
 let set_selection_end_rel cursor lines (row, col) =
   set_selection_end cursor lines (get_line cursor + row, get_column cursor + col)
