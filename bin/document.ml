@@ -428,8 +428,8 @@ let event_hook document e =
         scroll_cursor_into_view { document with cursor }
       else
         let cursor =
-          Cursor.set_selection_end document.cursor document.lines cursor_pos.y
-            cursor_pos.x
+          Cursor.set_selection_end document.cursor document.lines
+            (cursor_pos.y, cursor_pos.x)
         in
         { document with cursor }
   | `Text_input ->

@@ -36,7 +36,7 @@ val get_line : cursor -> int
 
 val is_dirty : cursor -> bool
 val postrender_hook : cursor -> cursor
-val set_selection_end : cursor -> string list -> int -> int -> cursor
-val set_selection_end_rel : cursor -> string list -> int -> int -> cursor
+val set_selection_end : cursor -> string list -> int * int -> cursor
+val set_selection_end_rel : cursor -> string list -> int * int -> cursor
 val select_none : cursor -> cursor
 val select_all : cursor -> string list -> cursor
