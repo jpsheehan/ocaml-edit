@@ -1,9 +1,12 @@
+open Tsdl_ttf
+
 let ( >>= ) o f =
   match o with
   | Error (`Msg e) -> failwith (Printf.sprintf "Error %s" e)
   | Ok a -> f a
 
 let clamp x min max = if x < min then min else if x > max then max else x
+let get_width_of_text font text = Ttf.size_utf8 font text >>= fun (w, _) -> w
 
 type point = { x : int; y : int }
 type size = { w : int; h : int }

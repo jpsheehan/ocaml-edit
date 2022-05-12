@@ -146,8 +146,6 @@ let scroll_to document point =
   (* TODO: Add upper limits for x too! *)
   { x; y }
 
-let get_width_of_text doc text = Ttf.size_utf8 doc.font text >>= fun (w, _) -> w
-
 let scroll_cursor_into_view document =
   let scroll_margin = Ttf.font_height document.font in
   let font_height = Ttf.font_height document.font in
@@ -179,7 +177,7 @@ let scroll_cursor_into_view document =
      in *)
   let x =
     let text_width =
-      get_width_of_text document
+      get_width_of_text document.font
         (String.sub
            (get_current_line document)
            0

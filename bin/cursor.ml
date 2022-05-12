@@ -68,11 +68,33 @@ let compair (ar, ac) (br, bc) =
 
 let render_selection a b lines viewport_offset renderer font =
   match List.sort compair [ a; b ] with
-  | [ first; second ] ->
+  | [ (frow, _fcol); (srow, _scol) ] ->
       Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-      render_caret first lines viewport_offset renderer font;
-      Sdl.set_render_draw_color renderer 0x55 0xff 0x55 0xff >>= fun () ->
-      render_caret second lines viewport_offset renderer font
+      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend >>= fun () ->
+      let rec highlight_line row =
+        if row > srow then ()
+        else
+          let line = List.nth lines row in
+          let first_col = 0 in
+          let min_x =
+            viewport_offset.x
+            + get_width_of_text font (String.sub line 0 first_col)
+          in
+          let last_col = String.length line in
+          let max_x =
+            viewport_offset.x
+            + get_width_of_text font (String.sub line 0 last_col)
+          in
+          let width = max_x - min_x in
+          let height = Ttf.font_height font in
+          let y = (height * row) + viewport_offset.y in
+          Sdl.render_fill_rect renderer
+            (Some (Sdl.Rect.create ~x:min_x ~y ~w:width ~h:height))
+          >>= fun () ->
+          highlight_line (row + 1);
+          ()
+      in
+      highlight_line frow
   | _ -> failwith "Could not compair cursor_pos"
 
 let render_hook cursor lines viewport_offset renderer font =

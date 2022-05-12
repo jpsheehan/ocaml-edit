@@ -18,7 +18,7 @@ An experimental editor made using OCaml.
 - [x] Text insertion
 - [x] Text deletion (backspace and delete)
 - [x] Newlines
-- [ ] Text selection
+- [ ] Text selection (in progress)
 
 ### UI
 - [ ] Widgets (TODO: Expand on this)
