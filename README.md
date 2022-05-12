@@ -20,7 +20,7 @@ An experimental editor made using OCaml.
 - [x] Newlines
 - [ ] Text selection (in progress)
   - [x] With mouse
-  - [ ] With keyboard
+  - [ ] With keyboard (in progress)
   - [ ] Select-all
   - [ ] Deselect-all
 

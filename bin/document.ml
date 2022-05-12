@@ -399,6 +399,13 @@ let event_hook document e =
           document with
           cursor = Cursor.set_line_rel cursor document.lines (-1);
         }
+  (* | `Key_down
+    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a
+         && Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.ctrl ->
+      {
+        document with
+        cursor = Cursor.select_all document.cursor document.lines;
+      } *)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
