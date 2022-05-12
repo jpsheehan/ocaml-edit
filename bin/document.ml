@@ -251,9 +251,43 @@ let insert_text_at_cursor document text =
   }
 
 let remove_selection doc =
-  (* remove entirely selected rows*)
-  (* remove text from partially selected rows *)
-  { doc with cursor = Cursor.select_none doc.cursor }
+  match Cursor.get_selection doc.cursor with
+  | Some ((frow, fcol), (srow, scol)) ->
+      (* remove entirely selected rows*)
+      let rec row_remover doc row =
+        if row <= frow then doc
+        else
+          row_remover { doc with lines = remove doc.lines (frow + 1) } (row - 1)
+      in
+      let doc = row_remover doc (srow - 1) in
+
+      (* remove text from partially selected rows *)
+      let doc =
+        if frow = srow then
+          let line = List.nth doc.lines frow in
+          let line =
+            String.cat (String.sub line 0 fcol)
+              (String.sub line scol (String.length line - scol))
+          in
+          { doc with lines = replace doc.lines frow line }
+        else
+          let first_line = List.nth doc.lines frow in
+          let second_line = List.nth doc.lines (frow + 1) in
+          let changed_line =
+            String.cat
+              (String.sub first_line 0 fcol)
+              (String.sub second_line scol (String.length second_line - scol))
+          in
+          let lines = remove doc.lines (frow + 1) in
+          let lines = replace lines frow changed_line in
+          { doc with lines }
+      in
+
+      let cursor = Cursor.select_none doc.cursor in
+      let cursor = Cursor.set_line cursor doc.lines frow in
+      let cursor = Cursor.set_column cursor doc.lines fcol in
+      { doc with cursor }
+  | _ -> doc
 
 let insert_or_replace_text_at_cursor doc text =
   let doc =

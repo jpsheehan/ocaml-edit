@@ -109,6 +109,14 @@ let render_hook cursor lines viewport_offset renderer font =
       render_selection cursor.pos selection_pos lines viewport_offset renderer
         font
 
+let get_selection cursor =
+  match cursor.selection_end with
+  | None -> None
+  | Some selection_end -> (
+      match List.sort compair [ cursor.pos; selection_end ] with
+      | [ a; b ] -> Some (a, b)
+      | _ -> failwith "Could not compair")
+
 let set_line cursor lines row =
   let num_lines = List.length lines in
   let row =
