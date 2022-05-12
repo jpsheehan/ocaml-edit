@@ -40,3 +40,4 @@ val set_selection_end : cursor -> string list -> int * int -> cursor
 val set_selection_end_rel : cursor -> string list -> int * int -> cursor
 val select_none : cursor -> cursor
 val select_all : cursor -> string list -> cursor
+val has_selection : cursor -> bool

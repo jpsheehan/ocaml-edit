@@ -157,7 +157,7 @@ let main () =
       document = Document.create_from_file f "./bin/main.ml";
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
-      frame_perfc = Performance_counter.create target_fps;
+      frame_perfc = Performance_counter.create 10;
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;

@@ -68,19 +68,19 @@ let compair (ar, ac) (br, bc) =
 
 let render_selection a b lines viewport_offset renderer font =
   match List.sort compair [ a; b ] with
-  | [ (frow, _fcol); (srow, _scol) ] ->
-      Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend >>= fun () ->
+  | [ (frow, fcol); (srow, scol) ] ->
+      Sdl.set_render_draw_color renderer 0x55 0x55 0x55 0xff >>= fun () ->
+      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_add >>= fun () ->
       let rec highlight_line row =
         if row > srow then ()
         else
           let line = List.nth lines row in
-          let first_col = 0 in
+          let first_col = if row = frow then fcol else 0 in
           let min_x =
             viewport_offset.x
             + get_width_of_text font (String.sub line 0 first_col)
           in
-          let last_col = String.length line in
+          let last_col = if row = srow then scol else String.length line in
           let max_x =
             viewport_offset.x
             + get_width_of_text font (String.sub line 0 last_col)
@@ -94,18 +94,20 @@ let render_selection a b lines viewport_offset renderer font =
           highlight_line (row + 1);
           ()
       in
-      highlight_line frow
+      highlight_line frow;
+      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_none >>= fun () ->
+      ()
   | _ -> failwith "Could not compair cursor_pos"
 
 let render_hook cursor lines viewport_offset renderer font =
-  if cursor.blink_state then
-    match cursor.selection_end with
-    | None ->
+  match cursor.selection_end with
+  | None ->
+      if cursor.blink_state then
         Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
         render_caret cursor.pos lines viewport_offset renderer font
-    | Some selection_pos ->
-        render_selection cursor.pos selection_pos lines viewport_offset renderer
-          font
+  | Some selection_pos ->
+      render_selection cursor.pos selection_pos lines viewport_offset renderer
+        font
 
 let set_line cursor lines row =
   let num_lines = List.length lines in
@@ -231,3 +233,6 @@ let set_selection_end cursor lines (row, col) =
 
 let set_selection_end_rel cursor lines (row, col) =
   set_selection_end cursor lines (get_line cursor + row, get_column cursor + col)
+
+let has_selection cursor =
+  match cursor.selection_end with None -> false | _ -> true

@@ -250,6 +250,17 @@ let insert_text_at_cursor document text =
     text_changed = true;
   }
 
+let remove_selection doc =
+  (* remove entirely selected rows*)
+  (* remove text from partially selected rows *)
+  { doc with cursor = Cursor.select_none doc.cursor }
+
+let insert_or_replace_text_at_cursor doc text =
+  let doc =
+    if Cursor.has_selection doc.cursor then remove_selection doc else doc
+  in
+  insert_text_at_cursor doc text
+
 let insert_newline_at_cursor document =
   let changed_line, new_line =
     split_string_at
@@ -265,7 +276,8 @@ let insert_newline_at_cursor document =
   { document with lines; cursor; text_changed = true }
 
 let remove_char_after_cursor document =
-  if
+  if Cursor.has_selection document.cursor then remove_selection document
+  else if
     Cursor.get_column document.cursor
     = String.length (get_current_line document)
   then
@@ -299,7 +311,8 @@ let remove_char_after_cursor document =
     { document with lines; text_changed = true }
 
 let remove_char_before_cursor document =
-  if Cursor.get_column document.cursor = 0 then
+  if Cursor.has_selection document.cursor then remove_selection document
+  else if Cursor.get_column document.cursor = 0 then
     if Cursor.get_line document.cursor = 0 then document
       (* cannot backspace before the start of the document *)
     else
@@ -432,7 +445,7 @@ let event_hook document e =
         { document with cursor }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
-      scroll_cursor_into_view (insert_text_at_cursor document text)
+      scroll_cursor_into_view (insert_or_replace_text_at_cursor document text)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
       scroll_cursor_into_view (insert_newline_at_cursor document)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
