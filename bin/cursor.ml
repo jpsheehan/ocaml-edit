@@ -225,19 +225,20 @@ let get_line cursor = fst cursor.pos
 let is_dirty cursor = cursor.dirty
 
 (* Selection stuff *)
-let select_none cursor = { cursor with selection_end = None }
+let select_none cursor = { cursor with selection_end = None; dirty = true }
 
 let select_all cursor lines =
   let row = List.length lines - 1 in
   let col = String.length (List.nth lines row) in
-  { cursor with selection_end = Some (row, col); pos = (0, 0) }
+  { cursor with selection_end = Some (row, col); pos = (0, 0); dirty = true }
 
 let set_selection_end cursor lines (row, col) =
   let row = if row >= List.length lines then List.length lines - 1 else row in
   let line = List.nth lines row in
   let col = if col > String.length line then String.length line else col in
-  if compair (row, col) cursor.pos = 0 then { cursor with selection_end = None }
-  else { cursor with selection_end = Some (row, col) }
+  if compair (row, col) cursor.pos = 0 then
+    { cursor with selection_end = None; dirty = true }
+  else { cursor with selection_end = Some (row, col); dirty = true }
 
 let set_selection_end_rel cursor lines (row, col) =
   set_selection_end cursor lines (get_line cursor + row, get_column cursor + col)
