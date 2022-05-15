@@ -30,9 +30,6 @@ let create () =
     selection_end = None;
   }
 
-let has_selection cursor =
-  match cursor.selection_end with None -> false | _ -> true
-
 let process_hook cursor now =
   let cursor =
     if cursor.dirty then
@@ -41,7 +38,7 @@ let process_hook cursor now =
   in
 
   let diff = now - cursor.last_blink_time in
-  if diff > 500 && not (has_selection cursor) then
+  if diff > 500 then
     {
       cursor with
       last_blink_time = now;
@@ -110,7 +107,10 @@ let render_hook cursor lines scroll_offset renderer font =
         render_caret cursor.pos lines scroll_offset renderer font
   | Some selection_pos ->
       render_selection cursor.pos selection_pos lines scroll_offset renderer
-        font
+        font;
+      if cursor.blink_state then
+        Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
+        render_caret selection_pos lines scroll_offset renderer font
 
 let get_selection cursor =
   match cursor.selection_end with
@@ -228,6 +228,10 @@ let get_line cursor = fst cursor.pos
 let is_dirty cursor = cursor.dirty
 
 (* Selection stuff *)
+
+let has_selection cursor =
+  match cursor.selection_end with None -> false | _ -> true
+
 let select_none cursor = { cursor with selection_end = None; dirty = true }
 
 let select_all cursor lines =
