@@ -378,6 +378,17 @@ let event_hook document e =
           document with
           cursor = Cursor.set_line_rel cursor document.lines (-1);
         }
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+      if document.shift_pressed then
+        {
+          document with
+          cursor =
+            Cursor.set_selection_end_rel document.cursor document.lines (1, 0);
+        }
+      else
+        let cursor = Cursor.select_none document.cursor in
+        scroll_cursor_into_view
+          { document with cursor = Cursor.set_line_rel cursor document.lines 1 }
   | `Key_down
     when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && document.ctrl_pressed
     ->
@@ -385,10 +396,6 @@ let event_hook document e =
         document with
         cursor = Cursor.select_all document.cursor document.lines;
       }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-      let cursor = Cursor.select_none document.cursor in
-      scroll_cursor_into_view
-        { document with cursor = Cursor.set_line_rel cursor document.lines 1 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
       let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view

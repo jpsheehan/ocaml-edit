@@ -248,4 +248,9 @@ let set_selection_end cursor lines (row, col) =
   else { cursor with selection_end = Some (row, col); dirty = true }
 
 let set_selection_end_rel cursor lines (row, col) =
-  set_selection_end cursor lines (get_line cursor + row, get_column cursor + col)
+  let start_row, start_col =
+    match cursor.selection_end with
+    | Some selection_end -> selection_end
+    | None -> cursor.pos
+  in
+  set_selection_end cursor lines (start_row + row, start_col + col)
