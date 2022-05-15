@@ -30,6 +30,9 @@ let create () =
     selection_end = None;
   }
 
+let has_selection cursor =
+  match cursor.selection_end with None -> false | _ -> true
+
 let process_hook cursor now =
   let cursor =
     if cursor.dirty then
@@ -38,7 +41,7 @@ let process_hook cursor now =
   in
 
   let diff = now - cursor.last_blink_time in
-  if diff > 500 then
+  if diff > 500 && not (has_selection cursor) then
     {
       cursor with
       last_blink_time = now;
@@ -242,6 +245,3 @@ let set_selection_end cursor lines (row, col) =
 
 let set_selection_end_rel cursor lines (row, col) =
   set_selection_end cursor lines (get_line cursor + row, get_column cursor + col)
-
-let has_selection cursor =
-  match cursor.selection_end with None -> false | _ -> true

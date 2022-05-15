@@ -21,8 +21,7 @@ An experimental editor made using OCaml.
 - [ ] Text selection (in progress)
   - [x] With mouse
   - [ ] With keyboard (in progress)
-  - [ ] Select-all
-  - [ ] Deselect-all
+  - [x] Select-all
 
 ### UI
 - [ ] Widgets (TODO: Expand on this)

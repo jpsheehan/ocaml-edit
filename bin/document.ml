@@ -16,6 +16,7 @@ type document = {
   text_changed : bool;
   cached_texture : Sdl.texture option;
   shift_pressed : bool;
+  ctrl_pressed : bool;
 }
 
 let create_empty font =
@@ -30,21 +31,10 @@ let create_empty font =
     text_changed = true;
     cached_texture = None;
     shift_pressed = false;
+    ctrl_pressed = false;
   }
 
-let create_from_string font text =
-  {
-    lines = [ text ];
-    font;
-    bg = default_bg_color;
-    cursor = Cursor.create ();
-    scroll_offset = { x = 0; y = 0 };
-    viewport_size = { w = 0; h = 0 };
-    viewport_offset = { x = 0; y = 0 };
-    text_changed = true;
-    cached_texture = None;
-    shift_pressed = false;
-  }
+let create_from_string font text = { (create_empty font) with lines = [ text ] }
 
 let create_from_file font filename =
   let file = open_in filename in
@@ -56,18 +46,7 @@ let create_from_file font filename =
       close_in file;
       lines
   in
-  {
-    font;
-    bg = default_bg_color;
-    cursor = Cursor.create ();
-    lines = List.rev (read_lines_from_file []);
-    scroll_offset = { x = 0; y = 0 };
-    viewport_size = { w = 0; h = 0 };
-    viewport_offset = { x = 0; y = 0 };
-    text_changed = true;
-    cached_texture = None;
-    shift_pressed = false;
-  }
+  { (create_empty font) with lines = List.rev (read_lines_from_file []) }
 
 let get_column_from_pixel doc x line =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
@@ -399,13 +378,13 @@ let event_hook document e =
           document with
           cursor = Cursor.set_line_rel cursor document.lines (-1);
         }
-  (* | `Key_down
-    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a
-         && Sdl.Event.(get e keyboard_keymod) = Sdl.Kmod.ctrl ->
+  | `Key_down
+    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && document.ctrl_pressed
+    ->
       {
         document with
         cursor = Cursor.select_all document.cursor document.lines;
-      } *)
+      }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       let cursor = Cursor.select_none document.cursor in
       scroll_cursor_into_view
@@ -445,6 +424,10 @@ let event_hook document e =
       { document with shift_pressed = true }
   | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
       { document with shift_pressed = false }
+  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
+      { document with ctrl_pressed = true }
+  | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
+      { document with ctrl_pressed = false }
   | `Mouse_wheel ->
       {
         document with
