@@ -49,8 +49,8 @@ let process_hook cursor now =
 
 let postrender_hook cursor = { cursor with dirty = false }
 
-let render_caret (row, col) lines scroll_offset renderer font =
-  let line_so_far = String.sub (List.nth lines row) 0 col in
+let render_caret (row, col) text scroll_offset renderer font =
+  let line_so_far = String.sub (Doctext.get_line text row) 0 col in
   let line_height = Ttf.font_height font in
   Ttf.size_text font line_so_far >>= fun (w, h) ->
   Sdl.render_draw_line renderer (w - scroll_offset.x)
@@ -66,7 +66,7 @@ let compair (ar, ac) (br, bc) =
   else if ac > bc then 1
   else 0
 
-let render_selection a b lines scroll_offset renderer font =
+let render_selection a b text scroll_offset renderer font =
   match List.sort compair [ a; b ] with
   | [ (frow, fcol); (srow, scol) ] ->
       Sdl.set_render_draw_color renderer 0x55 0x55 0x55 0xff >>= fun () ->
@@ -74,7 +74,7 @@ let render_selection a b lines scroll_offset renderer font =
       let rec highlight_line row =
         if row > srow then ()
         else
-          let line = List.nth lines row in
+          let line = Doctext.get_line text row in
           let first_col = if row = frow then fcol else 0 in
           let min_x =
             get_width_of_text font (String.sub line 0 first_col)
@@ -99,18 +99,17 @@ let render_selection a b lines scroll_offset renderer font =
       ()
   | _ -> failwith "Could not compair cursor_pos"
 
-let render_hook cursor lines scroll_offset renderer font =
+let render_hook cursor text scroll_offset renderer font =
   match cursor.selection_end with
   | None ->
       if cursor.blink_state then
         Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-        render_caret cursor.pos lines scroll_offset renderer font
+        render_caret cursor.pos text scroll_offset renderer font
   | Some selection_pos ->
-      render_selection cursor.pos selection_pos lines scroll_offset renderer
-        font;
+      render_selection cursor.pos selection_pos text scroll_offset renderer font;
       if cursor.blink_state then
         Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-        render_caret selection_pos lines scroll_offset renderer font
+        render_caret selection_pos text scroll_offset renderer font
 
 let get_selection cursor =
   match cursor.selection_end with
@@ -120,36 +119,32 @@ let get_selection cursor =
       | [ a; b ] -> Some (a, b)
       | _ -> failwith "Could not compair")
 
-let set_line cursor lines row =
-  let num_lines = List.length lines in
-  let row =
-    if row < 0 then 0 else if row >= num_lines then num_lines - 1 else row
-  in
+let set_line cursor text row =
+  let row = clamp row 0 (Doctext.get_number_of_lines text - 1) in
   let _, col = cursor.pos in
   { cursor with pos = (row, col); dirty = true }
 
-let set_line_rel cursor lines rel_line =
+let set_line_rel cursor text rel_line =
+  let last_row = Doctext.get_number_of_lines text - 1 in
   let cursor =
     match fst cursor.pos + rel_line with
     | n when n < 0 ->
         (* we can't go back further than the first line. *)
         { cursor with pos = (0, 0); desired_column = no_desired_column }
-    | n when n > List.length lines - 1 ->
+    | n when n > last_row ->
         (* we can't go forward further than the last line. *)
         {
           cursor with
           pos =
-            ( List.length lines - 1,
-              String.length (List.nth lines (fst cursor.pos)) );
+            (last_row, String.length (Doctext.get_line text (fst cursor.pos)));
           desired_column = no_desired_column;
         }
-    | n when n = List.length lines - 1 ->
-        { cursor with pos = (List.length lines - 1, snd cursor.pos) }
+    | n when n = last_row -> { cursor with pos = (last_row, snd cursor.pos) }
     | n -> { cursor with pos = (n, snd cursor.pos) }
   in
 
   (* now figure out what the column should be *)
-  let line_length = String.length (List.nth lines (fst cursor.pos)) in
+  let line_length = String.length (Doctext.get_line text (fst cursor.pos)) in
   let cursor =
     match
       ( snd cursor.pos <= line_length,
@@ -180,8 +175,8 @@ let set_line_rel cursor lines rel_line =
 
   { cursor with dirty = true }
 
-let set_column cursor lines column_idx =
-  let line_length = String.length (List.nth lines (fst cursor.pos)) in
+let set_column cursor text column_idx =
+  let line_length = String.length (Doctext.get_line text (fst cursor.pos)) in
   let column =
     if column_idx < 0 then 0
     else if column_idx > line_length then line_length
@@ -189,7 +184,7 @@ let set_column cursor lines column_idx =
   in
   { cursor with dirty = true; pos = (fst cursor.pos, column) }
 
-let rec set_column_rel cursor lines rel_col =
+let rec set_column_rel cursor text rel_col =
   if rel_col = 0 then cursor
   else
     let cursor =
@@ -203,22 +198,26 @@ let rec set_column_rel cursor lines rel_col =
             (* wrap to the previous line *)
             let row = fst cursor.pos - 1 in
             set_column_rel
-              { cursor with pos = (row, String.length (List.nth lines row)) }
-              lines (rel_col - n)
-      | n when n > String.length (List.nth lines (fst cursor.pos)) ->
+              {
+                cursor with
+                pos = (row, String.length (Doctext.get_line text row));
+              }
+              text (rel_col - n)
+      | n when n > String.length (Doctext.get_line text (fst cursor.pos)) ->
           (* cursor is going forwards over the end of the line *)
-          if fst cursor.pos = List.length lines - 1 then
+          if fst cursor.pos = Doctext.get_number_of_lines text - 1 then
             (* we can't go forward further than this! *)
             {
               cursor with
               pos =
-                (fst cursor.pos, String.length (List.nth lines (fst cursor.pos)));
+                ( fst cursor.pos,
+                  String.length (Doctext.get_line text (fst cursor.pos)) );
             }
           else
             (* wrap to the next line *)
             set_column_rel
               { cursor with pos = (fst cursor.pos + 1, 0) }
-              lines (rel_col - 1)
+              text (rel_col - 1)
       | n -> { cursor with pos = (fst cursor.pos, n) }
     in
     { cursor with dirty = true }
@@ -234,23 +233,23 @@ let has_selection cursor =
 
 let select_none cursor = { cursor with selection_end = None; dirty = true }
 
-let select_all cursor lines =
-  let row = List.length lines - 1 in
-  let col = String.length (List.nth lines row) in
+let select_all cursor text =
+  let row = Doctext.get_number_of_lines text - 1 in
+  let col = String.length (Doctext.get_line text row) in
   { cursor with selection_end = Some (row, col); pos = (0, 0); dirty = true }
 
-let set_selection_end cursor lines (row, col) =
-  let row = if row >= List.length lines then List.length lines - 1 else row in
-  let line = List.nth lines row in
+let set_selection_end cursor text (row, col) =
+  let row = min row (Doctext.get_number_of_lines text - 1) in
+  let line = Doctext.get_line text row in
   let col = if col > String.length line then String.length line else col in
   if compair (row, col) cursor.pos = 0 then
     { cursor with selection_end = None; dirty = true }
   else { cursor with selection_end = Some (row, col); dirty = true }
 
-let set_selection_end_rel cursor lines (row, col) =
+let set_selection_end_rel cursor text (row, col) =
   let start_row, start_col =
     match cursor.selection_end with
     | Some selection_end -> selection_end
     | None -> cursor.pos
   in
-  set_selection_end cursor lines (start_row + row, start_col + col)
+  set_selection_end cursor text (start_row + row, start_col + col)

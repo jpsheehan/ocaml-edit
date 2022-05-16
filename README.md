@@ -13,14 +13,15 @@ An experimental editor made using OCaml.
 - [ ] Vertical scrolling with cursor
     - Apply the idea of a scroll margin
 - [ ] Page up/down (implemented but not working, could just be this laptop)
+- [ ] Ctrl+left/right should skip words
 
 ### Editing
 - [x] Text insertion
 - [x] Text deletion (backspace and delete)
 - [x] Newlines
-- [ ] Text selection (in progress)
+- [x] Text selection
   - [x] With mouse
-  - [ ] With keyboard (in progress)
+  - [x] With keyboard
   - [x] Select-all
 
 ### UI
@@ -31,3 +32,12 @@ An experimental editor made using OCaml.
 
 ### Performance
 - [x] Cache the document texture if unchanged
+
+### Tech Debt
+- [x] Refactor document lines as own module (refactored as `Doctext`)
+- [ ] Refactor entire rendering context (window, renderer, etc) as own module
+- [ ] Refactor cursor module to do operations on `cursor_pos` instead. May want to declare own module so it is testable?
+
+### Bugs
+
+- [ ] Shift+left to select over newline crashes (do `cursor_pos` refactor first)

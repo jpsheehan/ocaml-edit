@@ -1,5 +1,3 @@
-open Helpers
-
 type t = { lines : string list }
 
 let create () = { lines = [ "" ] }

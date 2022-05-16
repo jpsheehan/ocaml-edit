@@ -75,29 +75,25 @@ let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
   Sdl.free_surface surface;
   (texture, surface_size)
 
-let draw_line_of_text document renderer font line_idx =
-  let line = Doctext.get_line document.text line_idx in
+let draw_line_of_text doc renderer font line_idx =
+  let line = Doctext.get_line doc.text line_idx in
   if String.length line > 0 then
     let line_height = Ttf.font_height font in
     let texture, src_size =
-      create_texture_from_text renderer font line document.bg
+      create_texture_from_text renderer font line doc.bg
     in
     let dst_size =
-      Sdl.Rect.create
-        ~x:(-document.scroll_offset.x)
-        ~y:(-document.scroll_offset.y + (line_height * line_idx))
+      Sdl.Rect.create ~x:(-doc.scroll_offset.x)
+        ~y:(-doc.scroll_offset.y + (line_height * line_idx))
         ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
     in
     Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
     Sdl.destroy_texture texture
 
-let get_num_visible_lines document =
-  match document.viewport_size.h with
-  | 0 -> 0
-  | h -> h / Ttf.font_height document.font
+let get_num_visible_lines doc =
+  match doc.viewport_size.h with 0 -> 0 | h -> h / Ttf.font_height doc.font
 
-let get_first_visible_line document =
-  document.scroll_offset.y / Ttf.font_height document.font
+let get_first_visible_line doc = doc.scroll_offset.y / Ttf.font_height doc.font
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
@@ -118,22 +114,22 @@ let scroll_to doc point =
   (* TODO: Add upper limits for x too! *)
   { x; y }
 
-let scroll_cursor_into_view document =
-  let scroll_margin = Ttf.font_height document.font in
-  let font_height = Ttf.font_height document.font in
-  let desired_line = Cursor.get_line document.cursor in
-  let first_visible_line = document.scroll_offset.y / font_height in
-  let last_visible_line = first_visible_line + get_num_visible_lines document in
+let scroll_cursor_into_view doc =
+  let scroll_margin = Ttf.font_height doc.font in
+  let font_height = Ttf.font_height doc.font in
+  let desired_line = Cursor.get_line doc.cursor in
+  let first_visible_line = doc.scroll_offset.y / font_height in
+  let last_visible_line = first_visible_line + get_num_visible_lines doc in
   let first_line =
     if desired_line < first_visible_line then Some desired_line
     else if desired_line >= last_visible_line then
-      Some (desired_line - get_num_visible_lines document + 1)
+      Some (desired_line - get_num_visible_lines doc + 1)
     else None
   in
   let y =
     match first_line with
     | Some line -> line * font_height
-    | None -> document.scroll_offset.y
+    | None -> doc.scroll_offset.y
   in
   (* Attempt to get a vertical viewport margin *)
   (* let y =
@@ -149,19 +145,15 @@ let scroll_cursor_into_view document =
      in *)
   let x =
     let text_width =
-      get_width_of_text document.font
-        (String.sub
-           (get_current_line document)
-           0
-           (Cursor.get_column document.cursor))
+      get_width_of_text doc.font
+        (String.sub (get_current_line doc) 0 (Cursor.get_column doc.cursor))
     in
-    if text_width > document.scroll_offset.x + document.viewport_size.w then
-      text_width - document.viewport_size.w + scroll_margin
-    else if text_width < document.scroll_offset.x then
-      text_width - scroll_margin
-    else document.scroll_offset.x
+    if text_width > doc.scroll_offset.x + doc.viewport_size.w then
+      text_width - doc.viewport_size.w + scroll_margin
+    else if text_width < doc.scroll_offset.x then text_width - scroll_margin
+    else doc.scroll_offset.x
   in
-  { document with scroll_offset = { x; y }; text_changed = true }
+  { doc with scroll_offset = { x; y }; text_changed = true }
 
 let process_hook document now (dst_rect : Sdl.rect) =
   {
@@ -207,20 +199,16 @@ let render_hook doc renderer font =
 let postrender_hook doc =
   { doc with text_changed = false; cursor = Cursor.postrender_hook doc.cursor }
 
-let insert_text_at_cursor document new_text =
+let insert_text_at_cursor doc new_text =
   let before, after =
-    split_string_at
-      (get_current_line document)
-      (Cursor.get_column document.cursor)
+    split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
   let line = String.cat (String.cat before new_text) after in
-  let text =
-    Doctext.replace_line document.text (Cursor.get_line document.cursor) line
-  in
+  let text = Doctext.replace_line doc.text (Cursor.get_line doc.cursor) line in
   {
-    document with
+    doc with
     text;
-    cursor = Cursor.set_column_rel document.cursor text (String.length new_text);
+    cursor = Cursor.set_column_rel doc.cursor text (String.length new_text);
     text_changed = true;
   }
 
@@ -286,231 +274,195 @@ let insert_newline_at_cursor doc =
   let cursor = Cursor.set_line_rel cursor text 1 in
   { doc with text; cursor; text_changed = true }
 
-let remove_char_after_cursor document =
-  if Cursor.has_selection document.cursor then remove_selection document
-  else if
-    Cursor.get_column document.cursor
-    = String.length (get_current_line document)
+let remove_char_after_cursor doc =
+  if Cursor.has_selection doc.cursor then remove_selection doc
+  else if Cursor.get_column doc.cursor = String.length (get_current_line doc)
   then
-    if
-      Cursor.get_line document.cursor
-      = Doctext.get_number_of_lines document.text - 1
-    then document
+    if Cursor.get_line doc.cursor = Doctext.get_number_of_lines doc.text - 1
+    then doc
     else
       (* Delete over newline *)
       let changed_line =
-        String.cat
-          (get_current_line document)
-          (Doctext.get_line document.text (Cursor.get_line document.cursor + 1))
+        String.cat (get_current_line doc)
+          (Doctext.get_line doc.text (Cursor.get_line doc.cursor + 1))
       in
       let text =
-        Doctext.replace_line document.text
-          (Cursor.get_line document.cursor)
-          changed_line
+        Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
       in
-      let text =
-        Doctext.remove_line text (Cursor.get_line document.cursor + 1)
-      in
-      { document with text; text_changed = true }
+      let text = Doctext.remove_line text (Cursor.get_line doc.cursor + 1) in
+      { doc with text; text_changed = true }
   else
     (* Delete in middle of line *)
     let before, after =
-      split_string_at
-        (get_current_line document)
-        (Cursor.get_column document.cursor)
+      split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
     in
     let changed_line =
       String.cat before (String.sub after 1 (String.length after - 1))
     in
     let text =
-      Doctext.replace_line document.text
-        (Cursor.get_line document.cursor)
-        changed_line
+      Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
     in
-    { document with text; text_changed = true }
+    { doc with text; text_changed = true }
 
-let remove_char_before_cursor document =
-  if Cursor.has_selection document.cursor then remove_selection document
-  else if Cursor.get_column document.cursor = 0 then
-    if Cursor.get_line document.cursor = 0 then document
+let remove_char_before_cursor doc =
+  if Cursor.has_selection doc.cursor then remove_selection doc
+  else if Cursor.get_column doc.cursor = 0 then
+    if Cursor.get_line doc.cursor = 0 then doc
       (* cannot backspace before the start of the document *)
     else
-      let cursor = Cursor.set_line_rel document.cursor document.lines (-1) in
+      let cursor = Cursor.set_line_rel doc.cursor doc.text (-1) in
       let cursor =
-        Cursor.set_column cursor document.lines
-          (String.length (List.nth document.lines (Cursor.get_line cursor)))
+        Cursor.set_column cursor doc.text
+          (String.length (Doctext.get_line doc.text (Cursor.get_line cursor)))
       in
       let changed_line =
         String.cat
-          (List.nth document.lines (Cursor.get_line document.cursor - 1))
-          (get_current_line document)
+          (Doctext.get_line doc.text (Cursor.get_line doc.cursor - 1))
+          (get_current_line doc)
       in
-      let lines =
-        replace document.lines
-          (Cursor.get_line document.cursor - 1)
+      let text =
+        Doctext.replace_line doc.text
+          (Cursor.get_line doc.cursor - 1)
           changed_line
       in
-      let lines = remove lines (Cursor.get_line document.cursor) in
-      scroll_cursor_into_view { document with lines; cursor }
+      let text = Doctext.remove_line text (Cursor.get_line doc.cursor) in
+      scroll_cursor_into_view { doc with text; cursor }
   else
     let before, after =
-      split_string_at
-        (get_current_line document)
-        (Cursor.get_column document.cursor)
+      split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
     in
     let changed_line =
       String.cat (String.sub before 0 (String.length before - 1)) after
     in
-    let lines =
-      replace document.lines (Cursor.get_line document.cursor) changed_line
+    let text =
+      Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
     in
-    let cursor = Cursor.set_column_rel document.cursor lines (-1) in
-    { document with lines; cursor; text_changed = true }
+    let cursor = Cursor.set_column_rel doc.cursor text (-1) in
+    { doc with text; cursor; text_changed = true }
 
-let event_hook document e =
+let event_hook doc e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-      if document.shift_pressed then
+      if doc.shift_pressed then
         {
-          document with
-          cursor =
-            Cursor.set_selection_end_rel document.cursor document.lines (0, -1);
+          doc with
+          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (0, -1);
         }
       else
-        let cursor = Cursor.select_none document.cursor in
+        let cursor = Cursor.select_none doc.cursor in
         scroll_cursor_into_view
-          {
-            document with
-            cursor = Cursor.set_column_rel cursor document.lines (-1);
-          }
+          { doc with cursor = Cursor.set_column_rel cursor doc.text (-1) }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-      if document.shift_pressed then
+      if doc.shift_pressed then
         {
-          document with
-          cursor =
-            Cursor.set_selection_end_rel document.cursor document.lines (0, 1);
+          doc with
+          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (0, 1);
         }
       else
-        let cursor = Cursor.select_none document.cursor in
+        let cursor = Cursor.select_none doc.cursor in
         scroll_cursor_into_view
-          {
-            document with
-            cursor = Cursor.set_column_rel cursor document.lines 1;
-          }
+          { doc with cursor = Cursor.set_column_rel cursor doc.text 1 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-      if document.shift_pressed then
+      if doc.shift_pressed then
         {
-          document with
-          cursor =
-            Cursor.set_selection_end_rel document.cursor document.lines (-1, 0);
+          doc with
+          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (-1, 0);
         }
       else
-        let cursor = Cursor.select_none document.cursor in
+        let cursor = Cursor.select_none doc.cursor in
         scroll_cursor_into_view
-          {
-            document with
-            cursor = Cursor.set_line_rel cursor document.lines (-1);
-          }
+          { doc with cursor = Cursor.set_line_rel cursor doc.text (-1) }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-      if document.shift_pressed then
+      if doc.shift_pressed then
         {
-          document with
-          cursor =
-            Cursor.set_selection_end_rel document.cursor document.lines (1, 0);
+          doc with
+          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (1, 0);
         }
       else
-        let cursor = Cursor.select_none document.cursor in
+        let cursor = Cursor.select_none doc.cursor in
         scroll_cursor_into_view
-          { document with cursor = Cursor.set_line_rel cursor document.lines 1 }
+          { doc with cursor = Cursor.set_line_rel cursor doc.text 1 }
   | `Key_down
-    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && document.ctrl_pressed
-    ->
-      {
-        document with
-        cursor = Cursor.select_all document.cursor document.lines;
-      }
+    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && doc.ctrl_pressed ->
+      { doc with cursor = Cursor.select_all doc.cursor doc.text }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
-      let cursor = Cursor.select_none document.cursor in
+      let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
-        { document with cursor = Cursor.set_column cursor document.lines 0 }
+        { doc with cursor = Cursor.set_column cursor doc.text 0 }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
-      let cursor = Cursor.select_none document.cursor in
+      let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
-          document with
+          doc with
           cursor =
-            Cursor.set_column cursor document.lines
-              (String.length (get_current_line document));
+            Cursor.set_column cursor doc.text
+              (String.length (get_current_line doc));
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
-      let cursor = Cursor.select_none document.cursor in
+      let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
-          document with
+          doc with
           cursor =
-            Cursor.set_line_rel cursor document.lines
-              (-get_num_visible_lines document);
+            Cursor.set_line_rel cursor doc.text (-get_num_visible_lines doc);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
-      let cursor = Cursor.select_none document.cursor in
+      let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
-          document with
+          doc with
           cursor =
-            Cursor.set_line_rel cursor document.lines
-              (get_num_visible_lines document);
+            Cursor.set_line_rel cursor doc.text (get_num_visible_lines doc);
         }
   | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
-      { document with shift_pressed = true }
+      { doc with shift_pressed = true }
   | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
-      { document with shift_pressed = false }
+      { doc with shift_pressed = false }
   | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
-      { document with ctrl_pressed = true }
+      { doc with ctrl_pressed = true }
   | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
-      { document with ctrl_pressed = false }
+      { doc with ctrl_pressed = false }
   | `Mouse_wheel ->
       {
-        document with
+        doc with
         scroll_offset =
-          scroll_to document
+          scroll_to doc
             {
               x =
-                document.scroll_offset.x
+                doc.scroll_offset.x
                 + (scroll_speed * -Sdl.Event.(get e mouse_wheel_x));
               y =
-                document.scroll_offset.y
+                doc.scroll_offset.y
                 + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
             };
         text_changed = true;
       }
   | `Mouse_button_down when Sdl.Event.(get e mouse_button_button) = 1 ->
       let cursor_pos =
-        convert_mouse_pos_to_cursor_pos document
+        convert_mouse_pos_to_cursor_pos doc
           {
             x = Sdl.Event.(get e mouse_button_x);
             y = Sdl.Event.(get e mouse_button_y);
           }
       in
-      if not document.shift_pressed then
-        let cursor =
-          Cursor.set_line document.cursor document.lines cursor_pos.y
-        in
-        let cursor = Cursor.set_column cursor document.lines cursor_pos.x in
+      if not doc.shift_pressed then
+        let cursor = Cursor.set_line doc.cursor doc.text cursor_pos.y in
+        let cursor = Cursor.set_column cursor doc.text cursor_pos.x in
         let cursor = Cursor.select_none cursor in
-        scroll_cursor_into_view { document with cursor }
+        scroll_cursor_into_view { doc with cursor }
       else
         let cursor =
-          Cursor.set_selection_end document.cursor document.lines
+          Cursor.set_selection_end doc.cursor doc.text
             (cursor_pos.y, cursor_pos.x)
         in
-        { document with cursor }
+        { doc with cursor }
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
-      scroll_cursor_into_view (insert_or_replace_text_at_cursor document text)
+      scroll_cursor_into_view (insert_or_replace_text_at_cursor doc text)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
-      scroll_cursor_into_view (insert_newline_at_cursor document)
+      scroll_cursor_into_view (insert_newline_at_cursor doc)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
-      scroll_cursor_into_view (remove_char_before_cursor document)
+      scroll_cursor_into_view (remove_char_before_cursor doc)
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.delete ->
-      scroll_cursor_into_view (remove_char_after_cursor document)
-  | _ -> document
+      scroll_cursor_into_view (remove_char_after_cursor doc)
+  | _ -> doc
