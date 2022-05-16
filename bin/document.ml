@@ -361,23 +361,47 @@ let remove_char_before_cursor document =
 let event_hook document e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-      let cursor = Cursor.select_none document.cursor in
-      scroll_cursor_into_view
+      if document.shift_pressed then
         {
           document with
-          cursor = Cursor.set_column_rel cursor document.lines (-1);
+          cursor =
+            Cursor.set_selection_end_rel document.cursor document.lines (0, -1);
         }
+      else
+        let cursor = Cursor.select_none document.cursor in
+        scroll_cursor_into_view
+          {
+            document with
+            cursor = Cursor.set_column_rel cursor document.lines (-1);
+          }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-      let cursor = Cursor.select_none document.cursor in
-      scroll_cursor_into_view
-        { document with cursor = Cursor.set_column_rel cursor document.lines 1 }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-      let cursor = Cursor.select_none document.cursor in
-      scroll_cursor_into_view
+      if document.shift_pressed then
         {
           document with
-          cursor = Cursor.set_line_rel cursor document.lines (-1);
+          cursor =
+            Cursor.set_selection_end_rel document.cursor document.lines (0, 1);
         }
+      else
+        let cursor = Cursor.select_none document.cursor in
+        scroll_cursor_into_view
+          {
+            document with
+            cursor = Cursor.set_column_rel cursor document.lines 1;
+          }
+  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+      if document.shift_pressed then
+        {
+          document with
+          cursor =
+            Cursor.set_selection_end_rel document.cursor document.lines (-1, 0);
+        }
+      else
+        let cursor = Cursor.select_none document.cursor in
+        scroll_cursor_into_view
+          {
+            document with
+            cursor = Cursor.set_line_rel cursor document.lines (-1);
+          }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       if document.shift_pressed then
         {
