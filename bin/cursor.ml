@@ -296,7 +296,7 @@ let set_selection_end_rel cursor text new_end =
   let start_pos =
     CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end)
   in
-  let start_pos =
-    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end)
+  let start_pos, _preferred_col =
+    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end) None
   in
   set_selection_end cursor text start_pos

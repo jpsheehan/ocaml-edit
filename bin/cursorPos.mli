@@ -7,13 +7,13 @@ val get_row : t -> int
 val set_row : t -> Doctext.t -> int -> t
 (** Sets the row to a particular value. *)
 
-val set_col : t -> Doctext.t -> int -> t
+val set_col : t -> Doctext.t -> int -> int option -> t * int option
 (** Sets the column to a particular value. *)
 
 val set_row_rel : t -> Doctext.t -> int -> t
 (** Sets the row relative to where it is. *)
 
-val set_col_rel : t -> Doctext.t -> int -> t
+val set_col_rel : t -> Doctext.t -> int -> int option -> t * int option
 (** Sets the column relative to where it is. *)
 
 val compare : t -> t -> int
