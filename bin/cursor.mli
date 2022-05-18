@@ -36,9 +36,9 @@ val get_line : cursor -> int
 
 val is_dirty : cursor -> bool
 val postrender_hook : cursor -> cursor
-val set_selection_end : cursor -> Doctext.t -> int * int -> cursor
-val set_selection_end_rel : cursor -> Doctext.t -> int * int -> cursor
+val set_selection_end : cursor -> Doctext.t -> CursorPos.t -> cursor
+val set_selection_end_rel : cursor -> Doctext.t -> CursorPos.t -> cursor
 val select_none : cursor -> cursor
 val select_all : cursor -> Doctext.t -> cursor
 val has_selection : cursor -> bool
-val get_selection : cursor -> ((int * int) * (int * int)) option
+val get_selection : cursor -> (CursorPos.t * CursorPos.t) option

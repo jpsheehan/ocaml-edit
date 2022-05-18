@@ -2,9 +2,6 @@ open Tsdl
 open Tsdl_ttf
 open Helpers
 
-type cursor_pos = int * int
-(** The row, col pair *)
-
 type cursor = {
   pos : CursorPos.t;
   dirty : bool;
@@ -123,9 +120,7 @@ let get_selection cursor =
       | _ -> failwith "Could not compare CursorPos")
 
 let set_line cursor text row =
-  let row = clamp row 0 (Doctext.get_number_of_lines text - 1) in
-  let col = CursorPos.get_col cursor.pos in
-  { cursor with pos = CursorPos.create row col; dirty = true }
+  { cursor with pos = CursorPos.set_row cursor.pos text row; dirty = true }
 
 let set_line_rel cursor text rel_line =
   let last_row = Doctext.get_number_of_lines text - 1 in
@@ -201,20 +196,8 @@ let set_line_rel cursor text rel_line =
 
   { cursor with dirty = true }
 
-let set_column cursor text column_idx =
-  let line_length =
-    String.length (Doctext.get_line text (CursorPos.get_row cursor.pos))
-  in
-  let column =
-    if column_idx < 0 then 0
-    else if column_idx > line_length then line_length
-    else column_idx
-  in
-  {
-    cursor with
-    dirty = true;
-    pos = CursorPos.create (CursorPos.get_row cursor.pos) column;
-  }
+let set_column cursor text col =
+  { cursor with dirty = true; pos = CursorPos.set_col cursor.pos text col }
 
 let rec set_column_rel cursor text rel_col =
   if rel_col = 0 then cursor
@@ -304,12 +287,16 @@ let set_selection_end cursor text pos =
     { cursor with selection_end = None; dirty = true }
   else { cursor with selection_end = Some pos; dirty = true }
 
-let set_selection_end_rel cursor text (row, col) =
+let set_selection_end_rel cursor text new_end =
   let start_pos =
     match cursor.selection_end with
     | Some selection_end -> selection_end
     | None -> cursor.pos
   in
-  let start_pos = CursorPos.set_row_rel start_pos text row in
-  let start_pos = CursorPos.set_col_rel start_pos text col in
+  let start_pos =
+    CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end)
+  in
+  let start_pos =
+    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end)
+  in
   set_selection_end cursor text start_pos

@@ -214,42 +214,48 @@ let insert_text_at_cursor doc new_text =
 
 let remove_selection doc =
   match Cursor.get_selection doc.cursor with
-  | Some ((frow, fcol), (srow, scol)) ->
+  | Some (first, second) ->
       (* remove entirely selected rows*)
+      let first_row = CursorPos.get_row first in
+      let first_col = CursorPos.get_col first in
+      let second_row = CursorPos.get_row second in
+      let second_col = CursorPos.get_col second in
       let rec row_remover doc row =
-        if row <= frow then doc
+        if row <= first_row then doc
         else
           row_remover
-            { doc with text = Doctext.remove_line doc.text (frow + 1) }
+            { doc with text = Doctext.remove_line doc.text (first_row + 1) }
             (row - 1)
       in
-      let doc = row_remover doc (srow - 1) in
+      let doc = row_remover doc (second_row - 1) in
 
       (* remove text from partially selected rows *)
       let doc =
-        if frow = srow then
-          let line = Doctext.get_line doc.text frow in
+        if first_row = second_row then
+          let line = Doctext.get_line doc.text first_row in
           let line =
-            String.cat (String.sub line 0 fcol)
-              (String.sub line scol (String.length line - scol))
+            String.cat
+              (String.sub line 0 first_col)
+              (String.sub line second_col (String.length line - second_col))
           in
-          { doc with text = Doctext.replace_line doc.text frow line }
+          { doc with text = Doctext.replace_line doc.text first_row line }
         else
-          let first_line = Doctext.get_line doc.text frow in
-          let second_line = Doctext.get_line doc.text (frow + 1) in
+          let first_line = Doctext.get_line doc.text first_row in
+          let second_line = Doctext.get_line doc.text (first_row + 1) in
           let changed_line =
             String.cat
-              (String.sub first_line 0 fcol)
-              (String.sub second_line scol (String.length second_line - scol))
+              (String.sub first_line 0 first_col)
+              (String.sub second_line second_col
+                 (String.length second_line - second_col))
           in
-          let text = Doctext.remove_line doc.text (frow + 1) in
-          let text = Doctext.replace_line text frow changed_line in
+          let text = Doctext.remove_line doc.text (first_row + 1) in
+          let text = Doctext.replace_line text first_row changed_line in
           { doc with text }
       in
 
       let cursor = Cursor.select_none doc.cursor in
-      let cursor = Cursor.set_line cursor doc.text frow in
-      let cursor = Cursor.set_column cursor doc.text fcol in
+      let cursor = Cursor.set_line cursor doc.text first_row in
+      let cursor = Cursor.set_column cursor doc.text first_col in
       { doc with cursor }
   | _ -> doc
 
@@ -346,7 +352,9 @@ let event_hook doc e =
       if doc.shift_pressed then
         {
           doc with
-          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (0, -1);
+          cursor =
+            Cursor.set_selection_end_rel doc.cursor doc.text
+              (CursorPos.create 0 (-1));
         }
       else
         let cursor = Cursor.select_none doc.cursor in
@@ -356,7 +364,9 @@ let event_hook doc e =
       if doc.shift_pressed then
         {
           doc with
-          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (0, 1);
+          cursor =
+            Cursor.set_selection_end_rel doc.cursor doc.text
+              (CursorPos.create 0 1);
         }
       else
         let cursor = Cursor.select_none doc.cursor in
@@ -366,7 +376,9 @@ let event_hook doc e =
       if doc.shift_pressed then
         {
           doc with
-          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (-1, 0);
+          cursor =
+            Cursor.set_selection_end_rel doc.cursor doc.text
+              (CursorPos.create (-1) 0);
         }
       else
         let cursor = Cursor.select_none doc.cursor in
@@ -376,7 +388,9 @@ let event_hook doc e =
       if doc.shift_pressed then
         {
           doc with
-          cursor = Cursor.set_selection_end_rel doc.cursor doc.text (1, 0);
+          cursor =
+            Cursor.set_selection_end_rel doc.cursor doc.text
+              (CursorPos.create 1 0);
         }
       else
         let cursor = Cursor.select_none doc.cursor in
@@ -453,7 +467,7 @@ let event_hook doc e =
       else
         let cursor =
           Cursor.set_selection_end doc.cursor doc.text
-            (cursor_pos.y, cursor_pos.x)
+            (CursorPos.create cursor_pos.y cursor_pos.x)
         in
         { doc with cursor }
   | `Text_input ->
