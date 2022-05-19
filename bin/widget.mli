@@ -1,6 +1,6 @@
 type 'a widget
 type event_args = Tsdl.Sdl.event
-type process_args = Helpers.size
+type process_args = OEditor.Helpers.size
 type prerender_args = Tsdl.Sdl.rect * Tsdl_ttf.Ttf.font
 type render_args = Tsdl.Sdl.renderer
 

@@ -1,6 +1,7 @@
 open Tsdl
 open Tsdl_ttf
-open Helpers
+open OEditor
+open OEditor.Helpers
 
 let scroll_speed = 20
 let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff

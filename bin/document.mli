@@ -11,8 +11,8 @@ val render_hook :
 val prerender_hook :
   document ->
   Tsdl.Sdl.renderer ->
-  Helpers.point ->
-  Helpers.size ->
+  OEditor.Helpers.point ->
+  OEditor.Helpers.size ->
   Tsdl.Sdl.Pixel.format_enum ->
   document
 

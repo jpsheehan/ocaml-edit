@@ -1,6 +1,6 @@
 open Tsdl
 open Tsdl_ttf
-open Helpers
+open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 12

@@ -1,2 +1,3 @@
 (library
- (name OEditor))
+ (name OEditor)
+ (libraries tsdl tsdl-ttf))

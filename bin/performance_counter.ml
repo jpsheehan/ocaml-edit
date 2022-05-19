@@ -1,4 +1,4 @@
-open Helpers
+open OEditor.Helpers
 
 type 'a performance_counter = { items : 'a list; size : int }
 

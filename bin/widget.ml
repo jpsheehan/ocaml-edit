@@ -1,3 +1,5 @@
+open OEditor
+
 type event_args = Tsdl.Sdl.event
 type process_args = Helpers.size
 type prerender_args = Tsdl.Sdl.rect * Tsdl_ttf.Ttf.font
