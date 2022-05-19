@@ -5,9 +5,9 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github jpsheehan/ocaml-edit))
 
-(authors "Author Name")
+(authors "Jesse Sheehan")
 
 (maintainers "Maintainer Name")
 
