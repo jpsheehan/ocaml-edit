@@ -120,84 +120,17 @@ let get_selection cursor =
       | _ -> failwith "Could not compare CursorPos")
 
 let set_line cursor text row =
-  { cursor with pos = CursorPos.set_row cursor.pos text row false; dirty = true }
+  { cursor with pos = CursorPos.set_row cursor.pos text row; dirty = true }
 
 let set_line_rel cursor text rel_line =
-  let last_row = Doctext.get_number_of_lines text - 1 in
-  let cursor =
-    match CursorPos.get_row cursor.pos + rel_line with
-    | n when n < 0 ->
-        (* we can't go back further than the first line. *)
-        {
-          cursor with
-          pos = CursorPos.create 0 0;
-          desired_column = no_desired_column;
-        }
-    | n when n > last_row ->
-        (* we can't go forward further than the last line. *)
-        {
-          cursor with
-          pos =
-            CursorPos.create last_row
-              (String.length
-                 (Doctext.get_line text (CursorPos.get_row cursor.pos)));
-          desired_column = no_desired_column;
-        }
-    | n when n = last_row ->
-        {
-          cursor with
-          pos = CursorPos.create last_row (CursorPos.get_col cursor.pos);
-        }
-    | n ->
-        { cursor with pos = CursorPos.create n (CursorPos.get_col cursor.pos) }
-  in
-
-  (* now figure out what the column should be *)
-  let line_length =
-    String.length (Doctext.get_line text (CursorPos.get_row cursor.pos))
-  in
-  let cursor =
-    match
-      ( CursorPos.get_col cursor.pos <= line_length,
-        cursor.desired_column <> no_desired_column,
-        cursor.desired_column <= line_length )
-    with
-    | true, true, true ->
-        {
-          cursor with
-          pos =
-            CursorPos.create
-              (CursorPos.get_row cursor.pos)
-              cursor.desired_column;
-          desired_column = no_desired_column;
-        }
-    | _, true, false ->
-        {
-          cursor with
-          pos = CursorPos.create (CursorPos.get_row cursor.pos) line_length;
-        }
-    | false, false, _ ->
-        {
-          cursor with
-          desired_column = CursorPos.get_col cursor.pos;
-          pos = CursorPos.create (CursorPos.get_row cursor.pos) line_length;
-        }
-    | false, true, true ->
-        {
-          cursor with
-          pos =
-            CursorPos.create
-              (CursorPos.get_row cursor.pos)
-              cursor.desired_column;
-          desired_column = no_desired_column;
-        }
-    | _ -> cursor
-  in
-
-  { cursor with dirty = true }
+  {
+    cursor with
+    dirty = true;
+    pos = CursorPos.set_row_rel cursor.pos text rel_line;
+  }
 
 let set_column cursor text col =
-  let pos = CursorPos.set_col cursor.pos text col true in
+  let pos = CursorPos.set_col cursor.pos text col in
   { cursor with dirty = true; pos }
 
 let rec set_column_rel cursor text rel_col =
@@ -295,9 +228,9 @@ let set_selection_end_rel cursor text new_end =
     | None -> cursor.pos
   in
   let start_pos =
-    CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end) true
+    CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end)
   in
   let start_pos =
-    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end) true
+    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end)
   in
   set_selection_end cursor text start_pos
