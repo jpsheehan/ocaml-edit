@@ -120,7 +120,7 @@ let get_selection cursor =
       | _ -> failwith "Could not compare CursorPos")
 
 let set_line cursor text row =
-  { cursor with pos = CursorPos.set_row cursor.pos text row; dirty = true }
+  { cursor with pos = CursorPos.set_row cursor.pos text row false; dirty = true }
 
 let set_line_rel cursor text rel_line =
   let last_row = Doctext.get_number_of_lines text - 1 in
@@ -197,7 +197,8 @@ let set_line_rel cursor text rel_line =
   { cursor with dirty = true }
 
 let set_column cursor text col =
-  { cursor with dirty = true; pos = CursorPos.set_col cursor.pos text col }
+  let pos = CursorPos.set_col cursor.pos text col true in
+  { cursor with dirty = true; pos }
 
 let rec set_column_rel cursor text rel_col =
   if rel_col = 0 then cursor
@@ -294,9 +295,9 @@ let set_selection_end_rel cursor text new_end =
     | None -> cursor.pos
   in
   let start_pos =
-    CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end)
+    CursorPos.set_row_rel start_pos text (CursorPos.get_row new_end) true
   in
-  let start_pos, _preferred_col =
-    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end) None
+  let start_pos =
+    CursorPos.set_col_rel start_pos text (CursorPos.get_col new_end) true
   in
   set_selection_end cursor text start_pos
