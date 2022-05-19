@@ -1,3 +1,6 @@
 (library
  (name OEditor)
- (libraries tsdl tsdl-ttf))
+ (libraries tsdl tsdl-ttf)
+ (inline_tests)
+ (preprocess
+  (pps ppx_inline_test ppx_assert)))
