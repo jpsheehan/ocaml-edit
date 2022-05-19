@@ -41,8 +41,7 @@ let set_row_rel pos text rel_row =
   | Some preferred_col ->
       if pos.col <= line_length && preferred_col <= line_length then
         create pos.row preferred_col
-      else if preferred_col <= line_length then create pos.row line_length
-      else pos
+      else { pos with col = line_length }
 
 let set_col_rel t text col = set_col t text (t.col + col)
 
