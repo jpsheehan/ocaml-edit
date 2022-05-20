@@ -73,3 +73,26 @@ let%test "insert_after inserts an element into a list" =
 
 let%test "insert_after inserts an element into an empty list" =
   List.equal Int.equal (insert_after [] 0 99) [ 99 ]
+
+let%test "insert_after doesn't insert an element if the index isn't in the list"
+    =
+  List.equal Int.equal (insert_after sample_list 42 99) sample_list
+
+let%test "insert_after doesn't insert if the index is negative" =
+  List.equal Int.equal (insert_after sample_list (-5) 99) sample_list
+
+(* TODO: test split_string_at *)
+(* let%test "split_string_at splits on an empty string" = *)
+(* Tuple.equal String.equal (split_string_at "" 0) ("", "") *)
+
+(* init *)
+let%test "init works on empty list" = List.equal Int.equal (init []) []
+
+let%test "init works on a normal lsit" =
+  List.equal Int.equal (init sample_list) [ 1; 2; 3; 4; 5; 6; 7; 8; 9 ]
+
+(* last *)
+let%test "last works on empty list" = Option.equal Int.equal (last []) None
+
+let%test "last works on normal list" =
+  Option.equal Int.equal (last sample_list) (Some 10)
