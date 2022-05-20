@@ -24,8 +24,14 @@ let skip list n =
   in
   aux list n
 
-let replace list n item = take list n @ (item :: skip list (n + 1))
-let insert_after list n item = take list (n + 1) @ (item :: skip list (n + 1))
+let replace list n item =
+  if n < 0 || n >= List.length list then list
+  else take list n @ (item :: skip list (n + 1))
+
+let insert_after list n item =
+  if n < 0 || n > List.length list then list
+  else take list (n + 1) @ (item :: skip list (n + 1))
+
 let remove list n = take list n @ skip list (n + 1)
 
 let split_string_at str n =
