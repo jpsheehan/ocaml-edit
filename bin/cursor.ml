@@ -50,7 +50,7 @@ let postrender_hook cursor = { cursor with dirty = false }
 let render_caret pos text scroll_offset renderer font =
   let row = CursorPos.get_row pos in
   let line_so_far =
-    String.sub (Doctext.get_line text row) 0 (CursorPos.get_col pos)
+    String.sub (DocText.get_line text row) 0 (CursorPos.get_col pos)
   in
   let line_height = Ttf.font_height font in
   Ttf.size_text font line_so_far >>= fun (w, h) ->
@@ -68,7 +68,7 @@ let render_selection a b text scroll_offset renderer font =
       let rec highlight_line row =
         if row > CursorPos.get_row secondary then ()
         else
-          let line = Doctext.get_line text row in
+          let line = DocText.get_line text row in
           let first_col =
             if row = CursorPos.get_row primary then CursorPos.get_col primary
             else 0
@@ -152,15 +152,15 @@ let rec set_column_rel cursor text rel_col =
                 cursor with
                 pos =
                   CursorPos.create row
-                    (String.length (Doctext.get_line text row));
+                    (String.length (DocText.get_line text row));
               }
               text (rel_col - n)
       | n
         when n
              > String.length
-                 (Doctext.get_line text (CursorPos.get_row cursor.pos)) ->
+                 (DocText.get_line text (CursorPos.get_row cursor.pos)) ->
           (* cursor is going forwards over the end of the line *)
-          if CursorPos.get_row cursor.pos = Doctext.get_number_of_lines text - 1
+          if CursorPos.get_row cursor.pos = DocText.get_number_of_lines text - 1
           then
             (* we can't go forward further than this! *)
             {
@@ -169,7 +169,7 @@ let rec set_column_rel cursor text rel_col =
                 CursorPos.create
                   (CursorPos.get_row cursor.pos)
                   (String.length
-                     (Doctext.get_line text (CursorPos.get_row cursor.pos)));
+                     (DocText.get_line text (CursorPos.get_row cursor.pos)));
             }
           else
             (* wrap to the next line *)
@@ -199,8 +199,8 @@ let has_selection cursor =
 let select_none cursor = { cursor with selection_end = None; dirty = true }
 
 let select_all cursor text =
-  let row = Doctext.get_number_of_lines text - 1 in
-  let col = String.length (Doctext.get_line text row) in
+  let row = DocText.get_number_of_lines text - 1 in
+  let col = String.length (DocText.get_line text row) in
   {
     cursor with
     selection_end = Some (CursorPos.create row col);
@@ -210,9 +210,9 @@ let select_all cursor text =
 
 let set_selection_end cursor text pos =
   let row =
-    min (CursorPos.get_row pos) (Doctext.get_number_of_lines text - 1)
+    min (CursorPos.get_row pos) (DocText.get_number_of_lines text - 1)
   in
-  let line = Doctext.get_line text row in
+  let line = DocText.get_line text row in
   let col =
     if CursorPos.get_col pos > String.length line then String.length line
     else CursorPos.get_col pos

@@ -7,18 +7,18 @@ let get_row t = t.row
 let get_col t = t.col
 
 let set_row pos text row =
-  let row = clamp row 0 (Doctext.get_number_of_lines text - 1) in
+  let row = clamp row 0 (DocText.get_number_of_lines text - 1) in
   { pos with row }
 
 let set_col pos text col =
-  let line_length = String.length (Doctext.get_line text pos.row) in
+  let line_length = String.length (DocText.get_line text pos.row) in
   let col =
     if col < 0 then 0 else if col > line_length then line_length else col
   in
   { pos with col }
 
 let set_row_rel pos text rel_row =
-  let last_row = Doctext.get_number_of_lines text - 1 in
+  let last_row = DocText.get_number_of_lines text - 1 in
   let pos =
     (* normalise the new position *)
     match pos.row + rel_row with
@@ -27,13 +27,13 @@ let set_row_rel pos text rel_row =
         create 0 0
     | new_row when new_row > last_row ->
         (* we can't go forward further than the last line. *)
-        create last_row (String.length (Doctext.get_line text pos.row))
+        create last_row (String.length (DocText.get_line text pos.row))
     | new_row when new_row = last_row -> set_row pos text last_row
     | new_row -> set_row pos text new_row
   in
 
   (* now figure out what the column should be *)
-  let line_length = String.length (Doctext.get_line text pos.row) in
+  let line_length = String.length (DocText.get_line text pos.row) in
   match pos.preferred_col with
   | None ->
       if pos.col <= line_length then pos

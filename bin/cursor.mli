@@ -9,23 +9,23 @@ val process_hook : cursor -> int -> cursor
 
 val render_hook :
   cursor ->
-  OEditor.Doctext.t ->
+  OEditor.DocText.t ->
   OEditor.Helpers.point ->
   Tsdl.Sdl.renderer ->
   Tsdl_ttf.Ttf.font ->
   unit
 (** Renders the cursor to the current render target. *)
 
-val set_column : cursor -> OEditor.Doctext.t -> int -> cursor
+val set_column : cursor -> OEditor.DocText.t -> int -> cursor
 (** Sets the cursor's column to an absolute value. *)
 
-val set_column_rel : cursor -> OEditor.Doctext.t -> int -> cursor
+val set_column_rel : cursor -> OEditor.DocText.t -> int -> cursor
 (** Sets the cursor's column relative to the current column. This may cause the cursor to wrap to a new line. *)
 
-val set_line : cursor -> OEditor.Doctext.t -> int -> cursor
+val set_line : cursor -> OEditor.DocText.t -> int -> cursor
 (** Sets the cursor's line to an absolute value. *)
 
-val set_line_rel : cursor -> OEditor.Doctext.t -> int -> cursor
+val set_line_rel : cursor -> OEditor.DocText.t -> int -> cursor
 (** Sets the cursor's line relative to the current line. This may cause the cursor to wrap to a different column (temporarily). *)
 
 val get_column : cursor -> int
@@ -38,12 +38,12 @@ val is_dirty : cursor -> bool
 val postrender_hook : cursor -> cursor
 
 val set_selection_end :
-  cursor -> OEditor.Doctext.t -> OEditor.CursorPos.t -> cursor
+  cursor -> OEditor.DocText.t -> OEditor.CursorPos.t -> cursor
 
 val set_selection_end_rel :
-  cursor -> OEditor.Doctext.t -> OEditor.CursorPos.t -> cursor
+  cursor -> OEditor.DocText.t -> OEditor.CursorPos.t -> cursor
 
 val select_none : cursor -> cursor
-val select_all : cursor -> OEditor.Doctext.t -> cursor
+val select_all : cursor -> OEditor.DocText.t -> cursor
 val has_selection : cursor -> bool
 val get_selection : cursor -> (OEditor.CursorPos.t * OEditor.CursorPos.t) option

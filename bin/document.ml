@@ -7,7 +7,7 @@ let scroll_speed = 20
 let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff
 
 type document = {
-  text : Doctext.t;
+  text : DocText.t;
   font : Ttf.font;
   bg : Sdl.color;
   cursor : Cursor.cursor;
@@ -22,7 +22,7 @@ type document = {
 
 let create_empty font =
   {
-    text = Doctext.create ();
+    text = DocText.create ();
     font;
     bg = default_bg_color;
     cursor = Cursor.create ();
@@ -36,15 +36,15 @@ let create_empty font =
   }
 
 let create_from_string font str =
-  { (create_empty font) with text = Doctext.create_from_string str }
+  { (create_empty font) with text = DocText.create_from_string str }
 
 let create_from_file font filename =
-  { (create_empty font) with text = Doctext.create_from_file filename }
+  { (create_empty font) with text = DocText.create_from_file filename }
 
 let get_column_from_pixel doc x row =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
   let rec find_column col =
-    let line = Doctext.get_line doc.text row in
+    let line = DocText.get_line doc.text row in
     if col > String.length line then String.length line
     else
       Ttf.size_utf8 doc.font (String.sub line 0 col) >>= fun (w, _) ->
@@ -58,7 +58,7 @@ let get_line_from_pixel doc y =
   clamp
     (normalised_y / Ttf.font_height doc.font)
     0
-    (Doctext.get_number_of_lines doc.text - 1)
+    (DocText.get_number_of_lines doc.text - 1)
 
 let convert_mouse_pos_to_cursor_pos doc pos =
   let line = get_line_from_pixel doc pos.y in
@@ -66,7 +66,7 @@ let convert_mouse_pos_to_cursor_pos doc pos =
   { x = column; y = line }
 
 let get_current_line doc =
-  Doctext.get_line doc.text (Cursor.get_line doc.cursor)
+  DocText.get_line doc.text (Cursor.get_line doc.cursor)
 
 let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
   let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
@@ -77,7 +77,7 @@ let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
   (texture, surface_size)
 
 let draw_line_of_text doc renderer font line_idx =
-  let line = Doctext.get_line doc.text line_idx in
+  let line = DocText.get_line doc.text line_idx in
   if String.length line > 0 then
     let line_height = Ttf.font_height font in
     let texture, src_size =
@@ -98,7 +98,7 @@ let get_first_visible_line doc = doc.scroll_offset.y / Ttf.font_height doc.font
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
-  clamp (line + 1) 0 (Doctext.get_number_of_lines doc.text)
+  clamp (line + 1) 0 (DocText.get_number_of_lines doc.text)
 
 let draw_all_lines doc renderer font =
   for idx = get_first_visible_line doc to get_last_visible_line doc - 1 do
@@ -107,7 +107,7 @@ let draw_all_lines doc renderer font =
 
 let scroll_to doc point =
   let max_y =
-    (Doctext.get_number_of_lines doc.text * Ttf.font_height doc.font)
+    (DocText.get_number_of_lines doc.text * Ttf.font_height doc.font)
     - (get_num_visible_lines doc * Ttf.font_height doc.font)
   in
   let y = clamp point.y 0 max_y in
@@ -205,7 +205,7 @@ let insert_text_at_cursor doc new_text =
     split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
   let line = String.cat (String.cat before new_text) after in
-  let text = Doctext.replace_line doc.text (Cursor.get_line doc.cursor) line in
+  let text = DocText.replace_line doc.text (Cursor.get_line doc.cursor) line in
   {
     doc with
     text;
@@ -225,7 +225,7 @@ let remove_selection doc =
         if row <= first_row then doc
         else
           row_remover
-            { doc with text = Doctext.remove_line doc.text (first_row + 1) }
+            { doc with text = DocText.remove_line doc.text (first_row + 1) }
             (row - 1)
       in
       let doc = row_remover doc (second_row - 1) in
@@ -233,24 +233,24 @@ let remove_selection doc =
       (* remove text from partially selected rows *)
       let doc =
         if first_row = second_row then
-          let line = Doctext.get_line doc.text first_row in
+          let line = DocText.get_line doc.text first_row in
           let line =
             String.cat
               (String.sub line 0 first_col)
               (String.sub line second_col (String.length line - second_col))
           in
-          { doc with text = Doctext.replace_line doc.text first_row line }
+          { doc with text = DocText.replace_line doc.text first_row line }
         else
-          let first_line = Doctext.get_line doc.text first_row in
-          let second_line = Doctext.get_line doc.text (first_row + 1) in
+          let first_line = DocText.get_line doc.text first_row in
+          let second_line = DocText.get_line doc.text (first_row + 1) in
           let changed_line =
             String.cat
               (String.sub first_line 0 first_col)
               (String.sub second_line second_col
                  (String.length second_line - second_col))
           in
-          let text = Doctext.remove_line doc.text (first_row + 1) in
-          let text = Doctext.replace_line text first_row changed_line in
+          let text = DocText.remove_line doc.text (first_row + 1) in
+          let text = DocText.replace_line text first_row changed_line in
           { doc with text }
       in
 
@@ -272,10 +272,10 @@ let insert_newline_at_cursor doc =
     split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
   let text =
-    Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+    DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
   in
   let text =
-    Doctext.insert_line_after text (Cursor.get_line doc.cursor) new_line
+    DocText.insert_line_after text (Cursor.get_line doc.cursor) new_line
   in
   let cursor = Cursor.set_column doc.cursor text 0 in
   let cursor = Cursor.set_line_rel cursor text 1 in
@@ -285,18 +285,18 @@ let remove_char_after_cursor doc =
   if Cursor.has_selection doc.cursor then remove_selection doc
   else if Cursor.get_column doc.cursor = String.length (get_current_line doc)
   then
-    if Cursor.get_line doc.cursor = Doctext.get_number_of_lines doc.text - 1
+    if Cursor.get_line doc.cursor = DocText.get_number_of_lines doc.text - 1
     then doc
     else
       (* Delete over newline *)
       let changed_line =
         String.cat (get_current_line doc)
-          (Doctext.get_line doc.text (Cursor.get_line doc.cursor + 1))
+          (DocText.get_line doc.text (Cursor.get_line doc.cursor + 1))
       in
       let text =
-        Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+        DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
       in
-      let text = Doctext.remove_line text (Cursor.get_line doc.cursor + 1) in
+      let text = DocText.remove_line text (Cursor.get_line doc.cursor + 1) in
       { doc with text; text_changed = true }
   else
     (* Delete in middle of line *)
@@ -307,7 +307,7 @@ let remove_char_after_cursor doc =
       String.cat before (String.sub after 1 (String.length after - 1))
     in
     let text =
-      Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+      DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
     in
     { doc with text; text_changed = true }
 
@@ -320,19 +320,19 @@ let remove_char_before_cursor doc =
       let cursor = Cursor.set_line_rel doc.cursor doc.text (-1) in
       let cursor =
         Cursor.set_column cursor doc.text
-          (String.length (Doctext.get_line doc.text (Cursor.get_line cursor)))
+          (String.length (DocText.get_line doc.text (Cursor.get_line cursor)))
       in
       let changed_line =
         String.cat
-          (Doctext.get_line doc.text (Cursor.get_line doc.cursor - 1))
+          (DocText.get_line doc.text (Cursor.get_line doc.cursor - 1))
           (get_current_line doc)
       in
       let text =
-        Doctext.replace_line doc.text
+        DocText.replace_line doc.text
           (Cursor.get_line doc.cursor - 1)
           changed_line
       in
-      let text = Doctext.remove_line text (Cursor.get_line doc.cursor) in
+      let text = DocText.remove_line text (Cursor.get_line doc.cursor) in
       scroll_cursor_into_view { doc with text; cursor }
   else
     let before, after =
@@ -342,7 +342,7 @@ let remove_char_before_cursor doc =
       String.cat (String.sub before 0 (String.length before - 1)) after
     in
     let text =
-      Doctext.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+      DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
     in
     let cursor = Cursor.set_column_rel doc.cursor text (-1) in
     { doc with text; cursor; text_changed = true }
