@@ -5,6 +5,7 @@ let ( >>= ) o f =
   | Error (`Msg e) -> failwith (Printf.sprintf "Error %s" e)
   | Ok a -> f a
 
+(* let ( <| ) x f = (Fun.flip f) x *)
 let clamp x min max = if x < min then min else if x > max then max else x
 let get_width_of_text font text = Ttf.size_utf8 font text >>= fun (w, _) -> w
 

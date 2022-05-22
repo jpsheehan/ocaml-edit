@@ -1,4 +1,5 @@
 val ( >>= ) : ('a, [< `Msg of string ]) result -> ('a -> 'b) -> 'b
+(* val ( <| ) : 'a -> ('a -> 'b -> 'c) -> 'b -> 'c *)
 
 type point = { x : int; y : int }
 type size = { w : int; h : int }

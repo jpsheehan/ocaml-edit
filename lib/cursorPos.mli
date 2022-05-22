@@ -17,3 +17,4 @@ val set_col_rel : t -> DocText.t -> int -> t
 (** Sets the column relative to where it is. *)
 
 val compare : t -> t -> int
+val equal : t -> t -> bool

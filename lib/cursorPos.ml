@@ -51,3 +51,5 @@ let compare a b =
   else if a.col < b.col then -1
   else if a.col > b.col then 1
   else 0
+
+let equal a b = compare a b = 0
