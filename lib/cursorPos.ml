@@ -43,7 +43,29 @@ let set_row_rel pos text rel_row =
         create pos.row preferred_col
       else { pos with col = line_length }
 
-let set_col_rel t text col = set_col t text (t.col + col)
+let rec set_col_rel pos text col =
+  if col = 0 then pos
+  else
+    match pos.col + col with
+    | n when n < 0 ->
+        (* cursor is going backwards over the start of the line *)
+        if pos.row = 0 then (* we can't go back further than this! *)
+          create 0 0
+        else
+          (* wrap to the previous line *)
+          let row = pos.row - 1 in
+          set_col_rel
+            (create row (String.length (DocText.get_line text row)))
+            text (col - n)
+    | n when n > String.length (DocText.get_line text pos.row) ->
+        (* cursor is going forwards over the end of the line *)
+        if pos.row = DocText.get_number_of_lines text - 1 then
+          (* we can't go forward further than this! *)
+          create pos.row (String.length (DocText.get_line text pos.row))
+        else
+          (* wrap to the next line *)
+          set_col_rel (create (pos.row + 1) 0) text (col - 1)
+    | n -> create pos.row n
 
 let compare a b =
   if a.row < b.row then -1

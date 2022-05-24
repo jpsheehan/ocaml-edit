@@ -135,57 +135,8 @@ let set_column cursor text col =
   { cursor with dirty = true; pos }
 
 let rec set_column_rel cursor text rel_col =
-  if rel_col = 0 then cursor
-  else
-    let cursor =
-      match CursorPos.get_col cursor.pos + rel_col with
-      | n when n < 0 ->
-          (* cursor is going backwards over the start of the line *)
-          if CursorPos.get_row cursor.pos = 0 then
-            (* we can't go back further than this! *)
-            { cursor with pos = CursorPos.create 0 0 }
-          else
-            (* wrap to the previous line *)
-            let row = CursorPos.get_row cursor.pos - 1 in
-            set_column_rel
-              {
-                cursor with
-                pos =
-                  CursorPos.create row
-                    (String.length (DocText.get_line text row));
-              }
-              text (rel_col - n)
-      | n
-        when n
-             > String.length
-                 (DocText.get_line text (CursorPos.get_row cursor.pos)) ->
-          (* cursor is going forwards over the end of the line *)
-          if CursorPos.get_row cursor.pos = DocText.get_number_of_lines text - 1
-          then
-            (* we can't go forward further than this! *)
-            {
-              cursor with
-              pos =
-                CursorPos.create
-                  (CursorPos.get_row cursor.pos)
-                  (String.length
-                     (DocText.get_line text (CursorPos.get_row cursor.pos)));
-            }
-          else
-            (* wrap to the next line *)
-            set_column_rel
-              {
-                cursor with
-                pos = CursorPos.create (CursorPos.get_row cursor.pos + 1) 0;
-              }
-              text (rel_col - 1)
-      | n ->
-          {
-            cursor with
-            pos = CursorPos.create (CursorPos.get_row cursor.pos) n;
-          }
-    in
-    { cursor with dirty = true }
+  let pos = CursorPos.set_col_rel cursor.pos text rel_col in
+  { cursor with dirty = true; pos }
 
 let get_column cursor = CursorPos.get_col cursor.pos
 let get_line cursor = CursorPos.get_row cursor.pos

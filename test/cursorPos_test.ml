@@ -81,6 +81,9 @@ let%test "set_col_rel sets the column forward multiple across line boundary" =
   let expected = CursorPos.create 1 1 in
   let actual = CursorPos.create 0 9 in
   let actual = CursorPos.set_col_rel actual sample_multi_line_text 3 in
+  Printf.printf "%s <> %s\n"
+    (CursorPos.to_string actual)
+    (CursorPos.to_string expected);
   CursorPos.equal actual expected
 
 let%test "set_col_rel sets the column to the last character when out of bounds"
@@ -108,9 +111,6 @@ let%test "set_col_rel sets the column backwards one across the line boundary" =
   let expected = CursorPos.create 0 10 in
   let actual = CursorPos.create 1 0 in
   let actual = CursorPos.set_col_rel actual sample_multi_line_text (-1) in
-  Printf.printf "%s <> %s\n"
-    (CursorPos.to_string actual)
-    (CursorPos.to_string expected);
   CursorPos.equal actual expected
 
 let%test "set_col_rel sets the column backwards multiple, in bounds" =
