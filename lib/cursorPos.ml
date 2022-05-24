@@ -53,3 +53,4 @@ let compare a b =
   else 0
 
 let equal a b = compare a b = 0
+let to_string pos = Printf.sprintf "(r:%d, c:%d)" pos.row pos.col

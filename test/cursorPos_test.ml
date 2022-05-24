@@ -108,6 +108,9 @@ let%test "set_col_rel sets the column backwards one across the line boundary" =
   let expected = CursorPos.create 0 10 in
   let actual = CursorPos.create 1 0 in
   let actual = CursorPos.set_col_rel actual sample_multi_line_text (-1) in
+  Printf.printf "%s <> %s\n"
+    (CursorPos.to_string actual)
+    (CursorPos.to_string expected);
   CursorPos.equal actual expected
 
 let%test "set_col_rel sets the column backwards multiple, in bounds" =
@@ -163,7 +166,30 @@ let%test "set_row_rel sets the row backwards multiple, clamped" =
 
 let%test "set_row_rel sets the column to max when setting row forwards one and \
           column not available" =
-  let expected = CursorPos.create 1 3 in
+  let expected = CursorPos.create 1 2 in
   let actual = CursorPos.create 0 5 in
   let actual = CursorPos.set_row_rel actual sample_multi_column_text 1 in
+  CursorPos.equal actual expected
+
+let%test "set_row_rel twice sets the column when setting row forwards over a \
+          shorter row" =
+  let expected = CursorPos.create 2 4 in
+  let actual = CursorPos.create 0 4 in
+  let actual = CursorPos.set_row_rel actual sample_multi_column_text 1 in
+  let actual = CursorPos.set_row_rel actual sample_multi_column_text 1 in
+  CursorPos.equal actual expected
+
+let%test "set_row_rel sets the column to max when setting row forwards one and \
+          column not available" =
+  let expected = CursorPos.create 1 2 in
+  let actual = CursorPos.create 2 5 in
+  let actual = CursorPos.set_row_rel actual sample_multi_column_text (-1) in
+  CursorPos.equal actual expected
+
+let%test "set_row_rel twice sets the column when setting row backwards over a \
+          shorter row" =
+  let expected = CursorPos.create 0 5 in
+  let actual = CursorPos.create 2 5 in
+  let actual = CursorPos.set_row_rel actual sample_multi_column_text (-1) in
+  let actual = CursorPos.set_row_rel actual sample_multi_column_text (-1) in
   CursorPos.equal actual expected
