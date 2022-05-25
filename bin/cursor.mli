@@ -29,10 +29,10 @@ val set_line_rel : cursor -> OEditor.DocText.t -> int -> cursor
 (** Sets the cursor's line relative to the current line. This may cause the cursor to wrap to a different column (temporarily). *)
 
 val get_column : cursor -> int
-(** Gets the cursor's column. *)
+(** Gets the cursor's column or secondary column (if it exists). *)
 
 val get_line : cursor -> int
-(** Gets the cursor's line. *)
+(** Gets the cursor's line or secondary line (if it exists). *)
 
 val is_dirty : cursor -> bool
 val postrender_hook : cursor -> cursor

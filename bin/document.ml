@@ -350,53 +350,54 @@ let remove_char_before_cursor doc =
 let event_hook doc e =
   match Sdl.Event.enum Sdl.Event.(get e typ) with
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-      if doc.shift_pressed then
-        {
-          doc with
-          cursor =
-            Cursor.set_selection_end_rel doc.cursor doc.text
-              (CursorPos.create 0 (-1));
-        }
-      else
-        let cursor = Cursor.select_none doc.cursor in
-        scroll_cursor_into_view
-          { doc with cursor = Cursor.set_column_rel cursor doc.text (-1) }
+      scroll_cursor_into_view
+        (if doc.shift_pressed then
+         {
+           doc with
+           cursor =
+             Cursor.set_selection_end_rel doc.cursor doc.text
+               (CursorPos.create 0 (-1));
+         }
+        else
+          let cursor = Cursor.select_none doc.cursor in
+          { doc with cursor = Cursor.set_column_rel cursor doc.text (-1) })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-      if doc.shift_pressed then
-        {
-          doc with
-          cursor =
-            Cursor.set_selection_end_rel doc.cursor doc.text
-              (CursorPos.create 0 1);
-        }
-      else
-        let cursor = Cursor.select_none doc.cursor in
-        scroll_cursor_into_view
-          { doc with cursor = Cursor.set_column_rel cursor doc.text 1 }
+      scroll_cursor_into_view
+        (if doc.shift_pressed then
+         {
+           doc with
+           cursor =
+             Cursor.set_selection_end_rel doc.cursor doc.text
+               (CursorPos.create 0 1);
+         }
+        else
+          let cursor = Cursor.select_none doc.cursor in
+          { doc with cursor = Cursor.set_column_rel cursor doc.text 1 })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-      if doc.shift_pressed then
-        {
-          doc with
-          cursor =
-            Cursor.set_selection_end_rel doc.cursor doc.text
-              (CursorPos.create (-1) 0);
-        }
-      else
-        let cursor = Cursor.select_none doc.cursor in
-        scroll_cursor_into_view
-          { doc with cursor = Cursor.set_line_rel cursor doc.text (-1) }
+      scroll_cursor_into_view
+        (if doc.shift_pressed then
+         {
+           doc with
+           cursor =
+             Cursor.set_selection_end_rel doc.cursor doc.text
+               (CursorPos.create (-1) 0);
+         }
+        else
+          let cursor = Cursor.select_none doc.cursor in
+          { doc with cursor = Cursor.set_line_rel cursor doc.text (-1) })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-      if doc.shift_pressed then
-        {
-          doc with
-          cursor =
-            Cursor.set_selection_end_rel doc.cursor doc.text
-              (CursorPos.create 1 0);
-        }
-      else
-        let cursor = Cursor.select_none doc.cursor in
-        scroll_cursor_into_view
-          { doc with cursor = Cursor.set_line_rel cursor doc.text 1 }
+      scroll_cursor_into_view
+        (if doc.shift_pressed then
+         {
+           doc with
+           cursor =
+             Cursor.set_selection_end_rel doc.cursor doc.text
+               (CursorPos.create 1 0);
+         }
+        else
+          let cursor = Cursor.select_none doc.cursor in
+
+          { doc with cursor = Cursor.set_line_rel cursor doc.text 1 })
   | `Key_down
     when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && doc.ctrl_pressed ->
       { doc with cursor = Cursor.select_all doc.cursor doc.text }
@@ -460,17 +461,18 @@ let event_hook doc e =
             y = Sdl.Event.(get e mouse_button_y);
           }
       in
-      if not doc.shift_pressed then
-        let cursor = Cursor.set_line doc.cursor doc.text cursor_pos.y in
-        let cursor = Cursor.set_column cursor doc.text cursor_pos.x in
-        let cursor = Cursor.select_none cursor in
-        scroll_cursor_into_view { doc with cursor }
-      else
-        let cursor =
-          Cursor.set_selection_end doc.cursor doc.text
-            (CursorPos.create cursor_pos.y cursor_pos.x)
-        in
-        { doc with cursor }
+      scroll_cursor_into_view
+        (if not doc.shift_pressed then
+         let cursor = Cursor.set_line doc.cursor doc.text cursor_pos.y in
+         let cursor = Cursor.set_column cursor doc.text cursor_pos.x in
+         let cursor = Cursor.select_none cursor in
+         { doc with cursor }
+        else
+          let cursor =
+            Cursor.set_selection_end doc.cursor doc.text
+              (CursorPos.create cursor_pos.y cursor_pos.x)
+          in
+          { doc with cursor })
   | `Text_input ->
       let text = Sdl.Event.(get e text_editing_text) in
       scroll_cursor_into_view (insert_or_replace_text_at_cursor doc text)

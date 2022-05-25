@@ -11,12 +11,8 @@ type cursor = {
       (** The time (in ticks) that the last blink state change occurred. *)
   blink_state : bool;
       (** The current blink state. true indicates that the cursor is being shown. *)
-  desired_column : int;
-      (** The column that the should be returned to (if possible) when changing lines. If no column is specifically wanted, then this is set to no_desired_column. *)
   selection_end : CursorPos.t option;
 }
-
-let no_desired_column = -1
 
 let create () =
   {
@@ -24,7 +20,6 @@ let create () =
     blink_state = false;
     last_blink_time = 0;
     dirty = true;
-    desired_column = no_desired_column;
     selection_end = None;
   }
 
@@ -134,12 +129,20 @@ let set_column cursor text col =
   let pos = CursorPos.set_col cursor.pos text col in
   { cursor with dirty = true; pos }
 
-let rec set_column_rel cursor text rel_col =
+let set_column_rel cursor text rel_col =
   let pos = CursorPos.set_col_rel cursor.pos text rel_col in
   { cursor with dirty = true; pos }
 
-let get_column cursor = CursorPos.get_col cursor.pos
-let get_line cursor = CursorPos.get_row cursor.pos
+let get_column cursor =
+  match cursor.selection_end with
+  | Some pos -> CursorPos.get_col pos
+  | None -> CursorPos.get_col cursor.pos
+
+let get_line cursor =
+  match cursor.selection_end with
+  | Some pos -> CursorPos.get_row pos
+  | None -> CursorPos.get_row cursor.pos
+
 let is_dirty cursor = cursor.dirty
 
 (* Selection stuff *)
