@@ -4,7 +4,7 @@ open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 12
-let target_fps = 60
+let target_fps = 30
 let target_mspf = 1000 / target_fps
 let red = Sdl.Color.create ~r:0xff ~g:0x00 ~b:0x00 ~a:0xff
 let orange = Sdl.Color.create ~r:0xff ~g:0xff ~b:0x00 ~a:0xff

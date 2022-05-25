@@ -36,8 +36,9 @@ An experimental editor made using OCaml.
 ### Tech Debt
 - [x] Refactor document lines as own module (refactored as `Doctext`)
 - [ ] Refactor entire rendering context (window, renderer, etc) as own module
-- [ ] Refactor cursor module to do operations on `cursor_pos` instead. May want to declare own module so it is testable?
+- [x] Refactor cursor module to do operations on `cursor_pos` instead. May want to declare own module so it is testable?
 
 ### Bugs
 
-- [ ] Shift+left to select over newline crashes (do `cursor_pos` refactor first)
+- [x] Shift+left to select over newline crashes (do `cursor_pos` refactor first)
+- [ ] There is a memory leak when the cursor is not moving around vertically. It is likely that the textures are not being disposed of properly.
