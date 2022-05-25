@@ -64,7 +64,10 @@ let rec set_col_rel pos text col =
           create pos.row (String.length (DocText.get_line text pos.row))
         else
           (* wrap to the next line *)
-          set_col_rel (create (pos.row + 1) 0) text (col - 1)
+          set_col_rel
+            (create (pos.row + 1) 0)
+            text
+            (pos.col + col - String.length (DocText.get_line text pos.row) - 1)
     | n -> create pos.row n
 
 let compare a b =
