@@ -32,6 +32,7 @@ An experimental editor made using OCaml.
 
 ### Performance
 - [x] Cache the document texture if unchanged
+- [ ] Cache each line individually
 
 ### Tech Debt
 - [x] Refactor document lines as own module (refactored as `Doctext`)
