@@ -77,7 +77,9 @@ let render_performance_counter renderer font perfc =
          ~x:(Sdl.Rect.w (Sdl.render_get_viewport renderer) - surface_w - 10)
          ~y:10 ~w:surface_w ~h:surface_h)
     renderer texture
-  >>= fun () -> Sdl.destroy_texture texture
+  >>= fun () ->
+  Sdl.free_surface surface;
+  Sdl.destroy_texture texture
 
 let rec main_loop state =
   match state.continue with

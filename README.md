@@ -41,4 +41,5 @@ An experimental editor made using OCaml.
 ### Bugs
 
 - [x] Shift+left to select over newline crashes (do `cursor_pos` refactor first)
-- [ ] There is a memory leak when the cursor is not moving around vertically. It is likely that the textures are not being disposed of properly.
+- [x] There is a memory leak when the cursor is not moving around vertically. It is likely that the textures are not being disposed of properly.
+  - Fixed. I wasn't freeing the surface of the performance counter
