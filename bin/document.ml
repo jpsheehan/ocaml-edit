@@ -68,13 +68,6 @@ let convert_mouse_pos_to_cursor_pos doc pos =
 let get_current_line doc =
   DocText.get_line doc.text (Cursor.get_line doc.cursor)
 
-let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
-  let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
-  Ttf.render_utf8_shaded font text fg bg >>= fun surface ->
-  let surface_size = Sdl.get_clip_rect surface in
-  Sdl.create_texture_from_surface renderer surface >>= fun texture ->
-  Sdl.free_surface surface;
-  (texture, surface_size)
 
 let draw_line_of_text doc renderer font line_idx =
   let line = DocText.get_line doc.text line_idx in

@@ -1,4 +1,5 @@
 open Tsdl
+open Tsdl_ttf
 open Helpers
 
 type docTextCache = { text : DocText.t; cache : Sdl.texture option list }
@@ -46,4 +47,35 @@ let insert_line_after textCache row line =
   { text; cache }
 
 let destroy textCache =
-  mark_lines_as_dirty textCache (0 to 2)
+  mark_lines_as_dirty textCache
+    (range ~min:0 ~max:(List.length textCache.cache))
+
+let create_texture_from_text renderer font text bg : Sdl.texture * Sdl.rect =
+  let fg = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
+  Ttf.render_utf8_shaded font text fg bg >>= fun surface ->
+  let surface_size = Sdl.get_clip_rect surface in
+  Sdl.create_texture_from_surface renderer surface >>= fun texture ->
+  Sdl.free_surface surface;
+  (texture, surface_size)
+
+let set_texture textCache renderer font bg idx =
+  let texture, _ =
+    create_texture_from_text renderer font
+      (DocText.get_line textCache.text idx)
+      bg
+  in
+  { textCache with cache = replace textCache.cache idx (Some texture) }
+
+let prepare_textures textCache renderer font bg first_line last_line =
+  let idxs = range ~min:first_line ~max:(last_line + 1) in
+  let idxs =
+    List.filter (fun idx -> List.nth textCache.cache idx = None) idxs
+  in
+  List.fold_left
+    (fun textCache idx -> set_texture textCache renderer font bg idx)
+    textCache idxs
+
+let get_texture textCache idx =
+  match List.nth textCache.cache idx with
+  | None -> failwith "Texture is not ready"
+  | Some texture -> texture

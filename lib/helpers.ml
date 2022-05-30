@@ -44,3 +44,7 @@ let init l = take l (List.length l - 1)
 
 let last l =
   match skip l (List.length l - 1) with [] -> None | h :: _ -> Some h
+
+let range ~min ~max =
+  let rec aux n l = if n < min then l else aux (n - 1) (n :: l) in
+  aux (max - 1) []
