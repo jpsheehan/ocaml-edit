@@ -4,11 +4,13 @@ open OEditor
 open OEditor.Helpers
 
 let scroll_speed = 20
+let default_fg_color = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff
 let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff
 
 type document = {
-  text : DocText.t;
+  text : DocTextCache.t;
   font : Ttf.font;
+  fg : Sdl.color;
   bg : Sdl.color;
   cursor : Cursor.cursor;
   scroll_offset : Helpers.point;
@@ -22,9 +24,10 @@ type document = {
 
 let create_empty font =
   {
-    text = DocText.create ();
+    text = DocTextCache.create ();
     font;
     bg = default_bg_color;
+    fg = default_fg_color;
     cursor = Cursor.create ();
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
@@ -36,15 +39,15 @@ let create_empty font =
   }
 
 let create_from_string font str =
-  { (create_empty font) with text = DocText.create_from_string str }
+  { (create_empty font) with text = DocTextCache.create_from_string str }
 
 let create_from_file font filename =
-  { (create_empty font) with text = DocText.create_from_file filename }
+  { (create_empty font) with text = DocTextCache.create_from_file filename }
 
 let get_column_from_pixel doc x row =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
   let rec find_column col =
-    let line = DocText.get_line doc.text row in
+    let line = DocTextCache.get_line doc.text row in
     if col > String.length line then String.length line
     else
       Ttf.size_utf8 doc.font (String.sub line 0 col) >>= fun (w, _) ->
@@ -58,7 +61,7 @@ let get_line_from_pixel doc y =
   clamp
     (normalised_y / Ttf.font_height doc.font)
     0
-    (DocText.get_number_of_lines doc.text - 1)
+    (DocTextCache.get_number_of_lines doc.text - 1)
 
 let convert_mouse_pos_to_cursor_pos doc pos =
   let line = get_line_from_pixel doc pos.y in
@@ -66,23 +69,22 @@ let convert_mouse_pos_to_cursor_pos doc pos =
   { x = column; y = line }
 
 let get_current_line doc =
-  DocText.get_line doc.text (Cursor.get_line doc.cursor)
-
+  DocTextCache.get_line doc.text (Cursor.get_line doc.cursor)
 
 let draw_line_of_text doc renderer font line_idx =
-  let line = DocText.get_line doc.text line_idx in
+  let line = DocTextCache.get_line doc.text line_idx in
   if String.length line > 0 then
     let line_height = Ttf.font_height font in
-    let texture, src_size =
-      create_texture_from_text renderer font line doc.bg
-    in
-    let dst_size =
-      Sdl.Rect.create ~x:(-doc.scroll_offset.x)
-        ~y:(-doc.scroll_offset.y + (line_height * line_idx))
-        ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
-    in
-    Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture >>= fun () ->
-    Sdl.destroy_texture texture
+    match DocTextCache.get_texture doc.text line_idx with
+    | Some (texture, src_size) ->
+        let dst_size =
+          Sdl.Rect.create ~x:(-doc.scroll_offset.x)
+            ~y:(-doc.scroll_offset.y + (line_height * line_idx))
+            ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
+        in
+        Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture
+        >>= fun () -> Sdl.destroy_texture texture
+    | None -> ()
 
 let get_num_visible_lines doc =
   match doc.viewport_size.h with 0 -> 0 | h -> h / Ttf.font_height doc.font
@@ -91,16 +93,16 @@ let get_first_visible_line doc = doc.scroll_offset.y / Ttf.font_height doc.font
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
-  clamp (line + 1) 0 (DocText.get_number_of_lines doc.text)
+  clamp (line + 1) 0 (DocTextCache.get_number_of_lines doc.text)
 
-let draw_all_lines doc renderer font =
+let draw_visible_lines doc renderer font =
   for idx = get_first_visible_line doc to get_last_visible_line doc - 1 do
     draw_line_of_text doc renderer font idx
   done
 
 let scroll_to doc point =
   let max_y =
-    (DocText.get_number_of_lines doc.text * Ttf.font_height doc.font)
+    (DocTextCache.get_number_of_lines doc.text * Ttf.font_height doc.font)
     - (get_num_visible_lines doc * Ttf.font_height doc.font)
   in
   let y = clamp point.y 0 max_y in
@@ -177,7 +179,14 @@ let prerender_hook doc renderer offset size pixel_format =
         { doc with cached_texture = Some new_texture }
     | _ -> doc
   in
-  { doc with viewport_size = size; viewport_offset = offset }
+  let doc = { doc with viewport_size = size; viewport_offset = offset } in
+  {
+    doc with
+    text =
+      DocTextCache.prepare_textures doc.text renderer doc.font doc.fg doc.bg
+        (get_first_visible_line doc)
+        (get_last_visible_line doc + 1);
+  }
 
 let render_hook doc renderer font =
   if doc.text_changed || Cursor.is_dirty doc.cursor then (
@@ -186,8 +195,10 @@ let render_hook doc renderer font =
       (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
     >>= fun () ->
     Sdl.render_fill_rect renderer None >>= fun () ->
-    draw_all_lines doc renderer font;
-    Cursor.render_hook doc.cursor doc.text doc.scroll_offset renderer font);
+    draw_visible_lines doc renderer font;
+    Cursor.render_hook doc.cursor
+      (DocTextCache.get_text doc.text)
+      doc.scroll_offset renderer font);
   doc.cached_texture
 
 let postrender_hook doc =
@@ -198,11 +209,16 @@ let insert_text_at_cursor doc new_text =
     split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
   let line = String.cat (String.cat before new_text) after in
-  let text = DocText.replace_line doc.text (Cursor.get_line doc.cursor) line in
+  let text =
+    DocTextCache.replace_line doc.text (Cursor.get_line doc.cursor) line
+  in
   {
     doc with
     text;
-    cursor = Cursor.set_column_rel doc.cursor text (String.length new_text);
+    cursor =
+      Cursor.set_column_rel doc.cursor
+        (DocTextCache.get_text text)
+        (String.length new_text);
     text_changed = true;
   }
 
@@ -218,7 +234,10 @@ let remove_selection doc =
         if row <= first_row then doc
         else
           row_remover
-            { doc with text = DocText.remove_line doc.text (first_row + 1) }
+            {
+              doc with
+              text = DocTextCache.remove_line doc.text (first_row + 1);
+            }
             (row - 1)
       in
       let doc = row_remover doc (second_row - 1) in
@@ -226,30 +245,34 @@ let remove_selection doc =
       (* remove text from partially selected rows *)
       let doc =
         if first_row = second_row then
-          let line = DocText.get_line doc.text first_row in
+          let line = DocTextCache.get_line doc.text first_row in
           let line =
             String.cat
               (String.sub line 0 first_col)
               (String.sub line second_col (String.length line - second_col))
           in
-          { doc with text = DocText.replace_line doc.text first_row line }
+          { doc with text = DocTextCache.replace_line doc.text first_row line }
         else
-          let first_line = DocText.get_line doc.text first_row in
-          let second_line = DocText.get_line doc.text (first_row + 1) in
+          let first_line = DocTextCache.get_line doc.text first_row in
+          let second_line = DocTextCache.get_line doc.text (first_row + 1) in
           let changed_line =
             String.cat
               (String.sub first_line 0 first_col)
               (String.sub second_line second_col
                  (String.length second_line - second_col))
           in
-          let text = DocText.remove_line doc.text (first_row + 1) in
-          let text = DocText.replace_line text first_row changed_line in
+          let text = DocTextCache.remove_line doc.text (first_row + 1) in
+          let text = DocTextCache.replace_line text first_row changed_line in
           { doc with text }
       in
 
       let cursor = Cursor.select_none doc.cursor in
-      let cursor = Cursor.set_line cursor doc.text first_row in
-      let cursor = Cursor.set_column cursor doc.text first_col in
+      let cursor =
+        Cursor.set_line cursor (DocTextCache.get_text doc.text) first_row
+      in
+      let cursor =
+        Cursor.set_column cursor (DocTextCache.get_text doc.text) first_col
+      in
       { doc with cursor }
   | _ -> doc
 
@@ -265,31 +288,36 @@ let insert_newline_at_cursor doc =
     split_string_at (get_current_line doc) (Cursor.get_column doc.cursor)
   in
   let text =
-    DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+    DocTextCache.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
   in
   let text =
-    DocText.insert_line_after text (Cursor.get_line doc.cursor) new_line
+    DocTextCache.insert_line_after text (Cursor.get_line doc.cursor) new_line
   in
-  let cursor = Cursor.set_column doc.cursor text 0 in
-  let cursor = Cursor.set_line_rel cursor text 1 in
+  let cursor = Cursor.set_column doc.cursor (DocTextCache.get_text text) 0 in
+  let cursor = Cursor.set_line_rel cursor (DocTextCache.get_text text) 1 in
   { doc with text; cursor; text_changed = true }
 
 let remove_char_after_cursor doc =
   if Cursor.has_selection doc.cursor then remove_selection doc
   else if Cursor.get_column doc.cursor = String.length (get_current_line doc)
   then
-    if Cursor.get_line doc.cursor = DocText.get_number_of_lines doc.text - 1
+    if
+      Cursor.get_line doc.cursor = DocTextCache.get_number_of_lines doc.text - 1
     then doc
     else
       (* Delete over newline *)
       let changed_line =
         String.cat (get_current_line doc)
-          (DocText.get_line doc.text (Cursor.get_line doc.cursor + 1))
+          (DocTextCache.get_line doc.text (Cursor.get_line doc.cursor + 1))
       in
       let text =
-        DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+        DocTextCache.replace_line doc.text
+          (Cursor.get_line doc.cursor)
+          changed_line
       in
-      let text = DocText.remove_line text (Cursor.get_line doc.cursor + 1) in
+      let text =
+        DocTextCache.remove_line text (Cursor.get_line doc.cursor + 1)
+      in
       { doc with text; text_changed = true }
   else
     (* Delete in middle of line *)
@@ -300,7 +328,9 @@ let remove_char_after_cursor doc =
       String.cat before (String.sub after 1 (String.length after - 1))
     in
     let text =
-      DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+      DocTextCache.replace_line doc.text
+        (Cursor.get_line doc.cursor)
+        changed_line
     in
     { doc with text; text_changed = true }
 
@@ -310,22 +340,26 @@ let remove_char_before_cursor doc =
     if Cursor.get_line doc.cursor = 0 then doc
       (* cannot backspace before the start of the document *)
     else
-      let cursor = Cursor.set_line_rel doc.cursor doc.text (-1) in
       let cursor =
-        Cursor.set_column cursor doc.text
-          (String.length (DocText.get_line doc.text (Cursor.get_line cursor)))
+        Cursor.set_line_rel doc.cursor (DocTextCache.get_text doc.text) (-1)
+      in
+      let cursor =
+        Cursor.set_column cursor
+          (DocTextCache.get_text doc.text)
+          (String.length
+             (DocTextCache.get_line doc.text (Cursor.get_line cursor)))
       in
       let changed_line =
         String.cat
-          (DocText.get_line doc.text (Cursor.get_line doc.cursor - 1))
+          (DocTextCache.get_line doc.text (Cursor.get_line doc.cursor - 1))
           (get_current_line doc)
       in
       let text =
-        DocText.replace_line doc.text
+        DocTextCache.replace_line doc.text
           (Cursor.get_line doc.cursor - 1)
           changed_line
       in
-      let text = DocText.remove_line text (Cursor.get_line doc.cursor) in
+      let text = DocTextCache.remove_line text (Cursor.get_line doc.cursor) in
       scroll_cursor_into_view { doc with text; cursor }
   else
     let before, after =
@@ -335,9 +369,13 @@ let remove_char_before_cursor doc =
       String.cat (String.sub before 0 (String.length before - 1)) after
     in
     let text =
-      DocText.replace_line doc.text (Cursor.get_line doc.cursor) changed_line
+      DocTextCache.replace_line doc.text
+        (Cursor.get_line doc.cursor)
+        changed_line
     in
-    let cursor = Cursor.set_column_rel doc.cursor text (-1) in
+    let cursor =
+      Cursor.set_column_rel doc.cursor (DocTextCache.get_text text) (-1)
+    in
     { doc with text; cursor; text_changed = true }
 
 let event_hook doc e =
@@ -348,63 +386,90 @@ let event_hook doc e =
          {
            doc with
            cursor =
-             Cursor.set_selection_end_rel doc.cursor doc.text
+             Cursor.set_selection_end_rel doc.cursor
+               (DocTextCache.get_text doc.text)
                (CursorPos.create 0 (-1));
          }
         else
           let cursor = Cursor.select_none doc.cursor in
-          { doc with cursor = Cursor.set_column_rel cursor doc.text (-1) })
+          {
+            doc with
+            cursor =
+              Cursor.set_column_rel cursor (DocTextCache.get_text doc.text) (-1);
+          })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
       scroll_cursor_into_view
         (if doc.shift_pressed then
          {
            doc with
            cursor =
-             Cursor.set_selection_end_rel doc.cursor doc.text
+             Cursor.set_selection_end_rel doc.cursor
+               (DocTextCache.get_text doc.text)
                (CursorPos.create 0 1);
          }
         else
           let cursor = Cursor.select_none doc.cursor in
-          { doc with cursor = Cursor.set_column_rel cursor doc.text 1 })
+          {
+            doc with
+            cursor =
+              Cursor.set_column_rel cursor (DocTextCache.get_text doc.text) 1;
+          })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
       scroll_cursor_into_view
         (if doc.shift_pressed then
          {
            doc with
            cursor =
-             Cursor.set_selection_end_rel doc.cursor doc.text
+             Cursor.set_selection_end_rel doc.cursor
+               (DocTextCache.get_text doc.text)
                (CursorPos.create (-1) 0);
          }
         else
           let cursor = Cursor.select_none doc.cursor in
-          { doc with cursor = Cursor.set_line_rel cursor doc.text (-1) })
+          {
+            doc with
+            cursor =
+              Cursor.set_line_rel cursor (DocTextCache.get_text doc.text) (-1);
+          })
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
       scroll_cursor_into_view
         (if doc.shift_pressed then
          {
            doc with
            cursor =
-             Cursor.set_selection_end_rel doc.cursor doc.text
+             Cursor.set_selection_end_rel doc.cursor
+               (DocTextCache.get_text doc.text)
                (CursorPos.create 1 0);
          }
         else
           let cursor = Cursor.select_none doc.cursor in
 
-          { doc with cursor = Cursor.set_line_rel cursor doc.text 1 })
+          {
+            doc with
+            cursor =
+              Cursor.set_line_rel cursor (DocTextCache.get_text doc.text) 1;
+          })
   | `Key_down
     when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && doc.ctrl_pressed ->
-      { doc with cursor = Cursor.select_all doc.cursor doc.text }
+      {
+        doc with
+        cursor = Cursor.select_all doc.cursor (DocTextCache.get_text doc.text);
+      }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
-        { doc with cursor = Cursor.set_column cursor doc.text 0 }
+        {
+          doc with
+          cursor = Cursor.set_column cursor (DocTextCache.get_text doc.text) 0;
+        }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
           doc with
           cursor =
-            Cursor.set_column cursor doc.text
+            Cursor.set_column cursor
+              (DocTextCache.get_text doc.text)
               (String.length (get_current_line doc));
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
@@ -413,7 +478,9 @@ let event_hook doc e =
         {
           doc with
           cursor =
-            Cursor.set_line_rel cursor doc.text (-get_num_visible_lines doc);
+            Cursor.set_line_rel cursor
+              (DocTextCache.get_text doc.text)
+              (-get_num_visible_lines doc);
         }
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
       let cursor = Cursor.select_none doc.cursor in
@@ -421,7 +488,9 @@ let event_hook doc e =
         {
           doc with
           cursor =
-            Cursor.set_line_rel cursor doc.text (get_num_visible_lines doc);
+            Cursor.set_line_rel cursor
+              (DocTextCache.get_text doc.text)
+              (get_num_visible_lines doc);
         }
   | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
       { doc with shift_pressed = true }
@@ -456,13 +525,22 @@ let event_hook doc e =
       in
       scroll_cursor_into_view
         (if not doc.shift_pressed then
-         let cursor = Cursor.set_line doc.cursor doc.text cursor_pos.y in
-         let cursor = Cursor.set_column cursor doc.text cursor_pos.x in
+         let cursor =
+           Cursor.set_line doc.cursor
+             (DocTextCache.get_text doc.text)
+             cursor_pos.y
+         in
+         let cursor =
+           Cursor.set_column cursor
+             (DocTextCache.get_text doc.text)
+             cursor_pos.x
+         in
          let cursor = Cursor.select_none cursor in
          { doc with cursor }
         else
           let cursor =
-            Cursor.set_selection_end doc.cursor doc.text
+            Cursor.set_selection_end doc.cursor
+              (DocTextCache.get_text doc.text)
               (CursorPos.create cursor_pos.y cursor_pos.x)
           in
           { doc with cursor })
