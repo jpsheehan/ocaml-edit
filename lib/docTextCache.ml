@@ -59,8 +59,7 @@ let create_texture_from_text renderer font text fg bg : Sdl.texture * Sdl.rect =
 
 let set_texture textCache renderer font fg bg idx =
   if get_width_of_text font (get_line textCache idx) = 0 then textCache
-  else (
-    Printf.printf "setting texture for line %d\n" idx;
+  else
     let texture, size =
       create_texture_from_text renderer font
         (DocText.get_line textCache.text idx)
@@ -69,10 +68,13 @@ let set_texture textCache renderer font fg bg idx =
     {
       textCache with
       cache = replace textCache.cache idx (Some (texture, size));
-    })
+    }
 
 let prepare_textures textCache renderer font fg bg first_line last_line =
-  let idxs = range ~min:first_line ~max:(last_line + 1) in
+  let last_line_exclusive =
+    min (last_line + 1) (get_number_of_lines textCache)
+  in
+  let idxs = range ~min:first_line ~max:last_line_exclusive in
   let idxs =
     List.filter (fun idx -> List.nth textCache.cache idx = None) idxs
   in

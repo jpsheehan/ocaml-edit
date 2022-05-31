@@ -83,7 +83,7 @@ let draw_line_of_text doc renderer font line_idx =
             ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
         in
         Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture
-        >>= fun () -> Sdl.destroy_texture texture
+        >>= fun () -> ()
     | None -> ()
 
 let get_num_visible_lines doc =
