@@ -11,3 +11,5 @@ let push perfc item =
 
 let compute perfc fn = fn perfc.items
 let clear perfc = { perfc with items = [] }
+let length perfc = List.length perfc.items
+let nth perfc idx = List.nth perfc.items idx
