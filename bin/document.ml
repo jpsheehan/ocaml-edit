@@ -183,7 +183,8 @@ let prerender_hook doc renderer offset size pixel_format =
   {
     doc with
     text =
-      DocTextCache.prepare_textures doc.text renderer doc.font doc.fg doc.bg
+      DocTextCache.prepare_textures doc.text renderer doc.font doc.cursor doc.fg
+        doc.bg
         (get_first_visible_line doc)
         (get_last_visible_line doc + 1);
   }

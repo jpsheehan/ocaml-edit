@@ -10,12 +10,17 @@ val replace_line : t -> int -> string -> t
 val remove_line : t -> int -> t
 val insert_line_after : t -> int -> string -> t
 val get_texture : t -> int -> (Tsdl.Sdl.texture * Tsdl.Sdl.rect) option
+
+val get_selection_texture :
+  t -> int -> (Tsdl.Sdl.texture * Tsdl.Sdl.rect) option
+
 val flush_textures : t -> t
 
 val prepare_textures :
   t ->
   Tsdl.Sdl.renderer ->
   Tsdl_ttf.Ttf.font ->
+  Cursor.cursor ->
   Tsdl.Sdl.color ->
   Tsdl.Sdl.color ->
   int ->

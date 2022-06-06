@@ -1,7 +1,7 @@
 open Tsdl
 open Tsdl_ttf
 open OEditor
-open OEditor.Helpers
+open Helpers
 
 type cursor = {
   pos : CursorPos.t;
