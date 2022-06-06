@@ -61,8 +61,8 @@ let as_bar_graph perfc renderer pixel_format target =
     renderer texture
   >>= fun () -> Sdl.destroy_texture texture
 
-let as_mean_text perfc renderer font target =
-  let compute_time = Performance_counter.compute perfc compute_mean in
+let as_text perfc renderer font target fn =
+  let compute_time = Performance_counter.compute perfc fn in
   let compute_time_str = string_of_int compute_time in
   let compute_time_str = String.cat compute_time_str " ms" in
 
@@ -80,3 +80,9 @@ let as_mean_text perfc renderer font target =
   >>= fun () ->
   Sdl.free_surface surface;
   Sdl.destroy_texture texture
+
+let as_mean_text perfc renderer font target =
+  as_text perfc renderer font target compute_mean
+
+let as_max_text perfc renderer font target =
+  as_text perfc renderer font target compute_max

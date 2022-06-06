@@ -100,11 +100,12 @@ let rec main_loop state =
           frame_perfc = Performance_counter.push state.frame_perfc diff;
         }
       in
-      (* Performance_counter_render.as_mean_text state.frame_perfc state.renderer
-         state.font target_mspf; *)
-      Performance_counter_render.as_bar_graph state.frame_perfc state.renderer
-        (Sdl.get_window_pixel_format state.window)
-        target_mspf;
+      Performance_counter_render.as_max_text state.frame_perfc state.renderer
+        state.font target_mspf;
+
+      (* Performance_counter_render.as_bar_graph state.frame_perfc state.renderer
+         (Sdl.get_window_pixel_format state.window)
+         target_mspf; *)
 
       (* Clean up the frame *)
       Sdl.render_present state.renderer;
