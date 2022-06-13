@@ -119,15 +119,23 @@ let main () =
   Ttf.init () >>= fun () ->
   Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
   >>= fun (w, r) ->
-  Sdl.set_window_title w "OCaml Editor";
-  Ttf.open_font font_location font_size >>= fun f ->
+  Ttf.open_font font_location font_size >>= fun font ->
+  let filename = Dialogs.open_file "Open a file" in
+  let document =
+    match filename with
+    | Some filename -> Document.create_from_file font filename
+    | None -> Document.create_empty font
+  in
+  (match filename with
+  | Some filename -> Sdl.set_window_title w filename
+  | None -> Sdl.set_window_title w "OCaml Editor");
   main_loop
     {
       window = w;
       renderer = r;
-      font = f;
+      font;
       continue = true;
-      document = Document.create_from_file f "./bin/main.ml";
+      document;
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
       frame_perfc = Performance_counter.create 100;
