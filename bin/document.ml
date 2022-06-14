@@ -89,7 +89,8 @@ let draw_line_of_text doc renderer font line_idx =
 let get_num_visible_lines doc =
   match doc.viewport_size.h with 0 -> 0 | h -> h / Ttf.font_height doc.font
 
-let get_first_visible_line doc = doc.scroll_offset.y / Ttf.font_height doc.font
+let get_first_visible_line doc =
+  max 0 (doc.scroll_offset.y / Ttf.font_height doc.font)
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
