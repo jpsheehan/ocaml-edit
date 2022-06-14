@@ -1,6 +1,5 @@
 open Tsdl
 open Tsdl_ttf
-open OEditor
 open Helpers
 
 type cursor = {

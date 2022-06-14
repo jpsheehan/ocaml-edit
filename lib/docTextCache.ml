@@ -75,12 +75,11 @@ let create_texture_from_text renderer font text fg bg : Sdl.texture * Sdl.rect =
   Sdl.free_surface surface;
   (texture, surface_size)
 
-let create_selection_texture_from_text renderer font text cursor
-    fg bg idx : Sdl.texture * Sdl.rect =
-  ()
+(* let create_selection_texture_from_text renderer font text cursor fg bg idx :
+     Sdl.texture * Sdl.rect =
+   () *)
 
-let set_texture textCache renderer font primary_cursor secondary_cursor fg bg
-    idx =
+let set_texture textCache renderer font _cursor fg bg idx =
   if get_width_of_text font (get_line textCache idx) = 0 then textCache
   else
     let texture, size =
@@ -89,19 +88,20 @@ let set_texture textCache renderer font primary_cursor secondary_cursor fg bg
         fg bg
     in
     let cache = replace textCache.cache idx (Some (texture, size)) in
-    match secondary_cursor with
-    | Some cursor_b ->
-        let selection_texture, selection_size =
-          create_selection_texture_from_text renderer font
-            (DocText.get_line textCache.text idx)
-            (primary_cursor, cursor_b) fg bg idx
-        in
-        let selection_cache =
-          replace textCache.selection_cache idx
-            (Some (selection_texture, selection_size))
-        in
-        { textCache with cache; selection_cache }
-    | None -> { textCache with cache }
+    (* match Cursor.get_selection cursor with
+       | Some (cursor_a, cursor_b) ->
+           let selection_texture, selection_size =
+             create_selection_texture_from_text renderer font
+               (DocText.get_line textCache.text idx)
+               (cursor_a, cursor_b) fg bg idx
+           in
+           let selection_cache =
+             replace textCache.selection_cache idx
+               (Some (selection_texture, selection_size))
+           in
+           { textCache with cache; selection_cache } *)
+    (* | None -> *)
+    { textCache with cache }
 
 let prepare_textures textCache renderer font cursor fg bg first_line last_line =
   let last_line_exclusive =
