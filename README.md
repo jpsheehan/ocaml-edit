@@ -32,7 +32,8 @@ An experimental editor made using OCaml.
 
 ### Performance
 - [x] Cache the document texture if unchanged
-- [ ] Cache each line individually
+- [x] Cache each line individually
+- [ ] Cache the selection of each line individually
 
 ### Tech Debt
 - [x] Refactor document lines as own module (refactored as `Doctext`)
@@ -44,4 +45,4 @@ An experimental editor made using OCaml.
 - [x] Shift+left to select over newline crashes (do `cursor_pos` refactor first)
 - [x] There is a memory leak when the cursor is not moving around vertically. It is likely that the textures are not being disposed of properly.
   - Fixed. I wasn't freeing the surface of the performance counter
-- [ ] When the document is shorter than the viewport, vertical scrolling is buggy
+- [x] When the document is shorter than the viewport, vertical scrolling is buggy
