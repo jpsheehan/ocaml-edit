@@ -107,7 +107,6 @@ let prepare_textures textCache renderer font cursor fg bg first_line last_line =
   let last_line_exclusive =
     min (last_line + 1) (get_number_of_lines textCache)
   in
-  let first_line = max first_line 0 in
   let idxs = range ~min:first_line ~max:last_line_exclusive in
   let idxs =
     List.filter (fun idx -> List.nth textCache.cache idx = None) idxs

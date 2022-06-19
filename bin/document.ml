@@ -103,9 +103,11 @@ let draw_visible_lines doc renderer font =
 
 let scroll_to doc point =
   let max_y =
-    (DocTextCache.get_number_of_lines doc.text * Ttf.font_height doc.font)
-    - (get_num_visible_lines doc * Ttf.font_height doc.font)
+    max 0
+      ((DocTextCache.get_number_of_lines doc.text - get_num_visible_lines doc)
+      * Ttf.font_height doc.font)
   in
+  (* let max_y = min max_y doc.viewport_size.h in *)
   let y = clamp point.y 0 max_y in
   let x = if point.x < 0 then 0 else point.x in
   (* TODO: Add upper limits for x too! *)
