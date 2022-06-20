@@ -5,6 +5,7 @@ open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 14
+let default_window_title = "Editor"
 
 type editor_state = {
   window : Sdl.window;
@@ -13,15 +14,29 @@ type editor_state = {
   document : Document.document;
   document_size : size;
   document_offset : point;
+  filename : string option;
   continue : bool;
   ctrl_pressed : bool;
 }
+
+let set_window_title state =
+  Sdl.set_window_title state.window
+    (match state.filename with
+    | Some filename -> filename ^ " - " ^ default_window_title
+    | None -> default_window_title)
 
 let build_theme () =
   Theme.create font_location font_size
     (Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff)
     (Sdl.Color.create ~r:0x22 ~g:0x22 ~b:0x22 ~a:0xff)
     (Sdl.Color.create ~r:0xff ~g:0x99 ~b:0x99 ~a:0xff)
+
+let _prompt_to_save state =
+  if Document.get_changed state.document then
+    if Dialogs.question "Close File" "Do you want to save your changes?" then
+      { state with document = Document.set_changed state.document false }
+    else state
+  else state
 
 let rec main_event_handler state =
   let e = Sdl.Event.create () in
@@ -32,15 +47,23 @@ let rec main_event_handler state =
       | `Key_down
         when Sdl.Event.(get e keyboard_keycode) = Sdl.K.o && state.ctrl_pressed
         -> (
+          (* let state = prompt_to_save state in *)
           match Dialogs.open_file "Open a file" with
           | Some filename ->
               Document.destroy state.document;
-              Sdl.set_window_title state.window filename;
+              set_window_title state;
               {
                 state with
+                filename = Some filename;
                 document = Document.create_from_file state.theme filename;
               }
           | None -> state)
+      | `Key_down
+        when Sdl.Event.(get e keyboard_keycode) = Sdl.K.n && state.ctrl_pressed
+        ->
+          Document.destroy state.document;
+          Sdl.set_window_title state.window default_window_title;
+          { state with document = Document.create_empty state.theme }
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.lctrl ->
           let state = { state with ctrl_pressed = true } in
           { state with document = Document.event_hook state.document e }
@@ -132,8 +155,7 @@ let main () =
   >>= fun (w, r) ->
   let theme = build_theme () in
   let document = Document.create_empty theme in
-  Sdl.set_window_title w "OCaml Editor";
-  main_loop
+  let state =
     {
       window = w;
       renderer = r;
@@ -143,7 +165,11 @@ let main () =
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
       ctrl_pressed = false;
-    };
+      filename = None;
+    }
+  in
+  set_window_title state;
+  main_loop state;
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;
   Ttf.quit ();

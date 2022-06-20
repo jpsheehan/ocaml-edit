@@ -6,7 +6,8 @@ type file_selection = {
   separator : string option;
 }
 
-type dialog_options = FileSelection of file_selection
+type question = { text : string }
+type dialog_options = FileSelection of file_selection | Question of question
 
 type zenity_options = {
   title : string option;
@@ -31,9 +32,15 @@ let get_arguments_for_file_selection_dialog options =
 
   !args
 
+let get_arguments_for_question_dialog options =
+  let args = ref [ "--question" ] in
+  args := ("--text=" ^ options.text) :: !args;
+  !args
+
 let get_arguments_for_dialog_options options =
   match options with
   | FileSelection options -> get_arguments_for_file_selection_dialog options
+  | Question options -> get_arguments_for_question_dialog options
 
 let execute_zenity options =
   let args = ref [] in
@@ -64,6 +71,21 @@ let execute_zenity options =
   | -1, _ -> Error "An unexpected error occurred"
   | 5, _ -> Error "Timeout occurred"
   | x, _ -> Error (Printf.sprintf "Zenity exited with '%d' code." x)
+
+let question title prompt =
+  match
+    execute_zenity
+      {
+        title = Some title;
+        width = None;
+        height = None;
+        timeout = None;
+        window_icon = None;
+        dialog = Question { text = prompt };
+      }
+  with
+  | Ok _ -> true
+  | _ -> false
 
 let open_file title =
   match

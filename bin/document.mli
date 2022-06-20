@@ -19,3 +19,5 @@ val prerender_hook :
 val postrender_hook : document -> document
 val event_hook : document -> Tsdl.Sdl.event -> document
 val destroy : document -> unit
+val get_changed : document -> bool
+val set_changed : document -> bool -> document

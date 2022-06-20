@@ -16,6 +16,7 @@ type document = {
   cached_texture : Sdl.texture option;
   shift_pressed : bool;
   ctrl_pressed : bool;
+  changed_since_load : bool;
 }
 
 let create_empty theme =
@@ -30,6 +31,7 @@ let create_empty theme =
     cached_texture = None;
     shift_pressed = false;
     ctrl_pressed = false;
+    changed_since_load = false;
   }
 
 let create_from_string font str =
@@ -43,6 +45,11 @@ let destroy document =
     { document with text = DocTextCache.flush_textures document.text }
   in
   ()
+
+let set_changed document changed =
+  { document with changed_since_load = changed }
+
+let get_changed document = document.changed_since_load
 
 let get_column_from_pixel doc x row =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
@@ -225,6 +232,7 @@ let insert_text_at_cursor doc new_text =
   in
   {
     doc with
+    changed_since_load = true;
     text;
     cursor =
       Cursor.set_column_rel doc.cursor
@@ -262,7 +270,11 @@ let remove_selection doc =
               (String.sub line 0 first_col)
               (String.sub line second_col (String.length line - second_col))
           in
-          { doc with text = DocTextCache.replace_line doc.text first_row line }
+          {
+            doc with
+            text = DocTextCache.replace_line doc.text first_row line;
+            changed_since_load = true;
+          }
         else
           let first_line = DocTextCache.get_line doc.text first_row in
           let second_line = DocTextCache.get_line doc.text (first_row + 1) in
@@ -274,7 +286,7 @@ let remove_selection doc =
           in
           let text = DocTextCache.remove_line doc.text (first_row + 1) in
           let text = DocTextCache.replace_line text first_row changed_line in
-          { doc with text }
+          { doc with text; changed_since_load = true }
       in
 
       let cursor = Cursor.select_none doc.cursor in
@@ -284,7 +296,7 @@ let remove_selection doc =
       let cursor =
         Cursor.set_column cursor (DocTextCache.get_text doc.text) first_col
       in
-      { doc with cursor }
+      { doc with cursor; changed_since_load = true }
   | _ -> doc
 
 let insert_or_replace_text_at_cursor doc text =
@@ -306,7 +318,7 @@ let insert_newline_at_cursor doc =
   in
   let cursor = Cursor.set_column doc.cursor (DocTextCache.get_text text) 0 in
   let cursor = Cursor.set_line_rel cursor (DocTextCache.get_text text) 1 in
-  { doc with text; cursor; text_changed = true }
+  { doc with text; cursor; text_changed = true; changed_since_load = true }
 
 let remove_char_after_cursor doc =
   if Cursor.has_selection doc.cursor then remove_selection doc
@@ -329,7 +341,7 @@ let remove_char_after_cursor doc =
       let text =
         DocTextCache.remove_line text (Cursor.get_line doc.cursor + 1)
       in
-      { doc with text; text_changed = true }
+      { doc with text; text_changed = true; changed_since_load = true }
   else
     (* Delete in middle of line *)
     let before, after =
@@ -343,7 +355,7 @@ let remove_char_after_cursor doc =
         (Cursor.get_line doc.cursor)
         changed_line
     in
-    { doc with text; text_changed = true }
+    { doc with text; text_changed = true; changed_since_load = true }
 
 let remove_char_before_cursor doc =
   if Cursor.has_selection doc.cursor then remove_selection doc
