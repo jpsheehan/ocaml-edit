@@ -123,3 +123,7 @@ let get_texture textCache idx =
 
 let get_selection_texture textCache idx = List.nth textCache.selection_cache idx
 let get_text textCache = textCache.text
+
+let get_max_texture_width t =
+  t.cache |> List.filter Option.is_some |> List.map Option.get |> List.map snd
+  |> List.map Sdl.Rect.w |> List.fold_left max 0

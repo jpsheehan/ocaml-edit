@@ -28,3 +28,4 @@ val prepare_textures :
   t
 
 val get_text : t -> DocText.t
+val get_max_texture_width : t -> int

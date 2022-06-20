@@ -119,7 +119,11 @@ let scroll_to doc point =
   in
   (* let max_y = min max_y doc.viewport_size.h in *)
   let y = clamp point.y 0 max_y in
-  let x = if point.x < 0 then 0 else point.x in
+  let max_x =
+    max 0 (DocTextCache.get_max_texture_width doc.text - doc.viewport_size.w)
+  in
+  Printf.printf "Max x is %d\n" max_x;
+  let x = clamp point.x 0 max_x in
   (* TODO: Add upper limits for x too! *)
   { x; y }
 
