@@ -1,12 +1,12 @@
 type document
 
-val create_empty : Tsdl_ttf.Ttf.font -> document
-val create_from_file : Tsdl_ttf.Ttf.font -> string -> document
-val create_from_string : Tsdl_ttf.Ttf.font -> string -> document
+val create_empty : Theme.t -> document
+val create_from_file : Theme.t -> string -> document
+val create_from_string : Theme.t -> string -> document
 val process_hook : document -> int -> Tsdl.Sdl.rect -> document
 
 val render_hook :
-  document -> Tsdl.Sdl.renderer -> Tsdl_ttf.Ttf.font -> Tsdl.Sdl.texture option
+  document -> Tsdl.Sdl.renderer -> Theme.t -> Tsdl.Sdl.texture option
 
 val prerender_hook :
   document ->

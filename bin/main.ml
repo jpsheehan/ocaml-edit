@@ -4,20 +4,26 @@ open OEditor
 open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
-let font_size = 12
+let font_size = 14
 let target_fps = 60
 let target_mspf = 1000 / target_fps
 
 type editor_state = {
   window : Sdl.window;
   renderer : Sdl.renderer;
-  font : Ttf.font;
+  theme : Theme.t;
   document : Document.document;
   document_size : size;
   document_offset : point;
   continue : bool;
   frame_perfc : int Performance_counter.performance_counter;
 }
+
+let build_theme () =
+  Theme.create font_location font_size
+    (Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff)
+    (Sdl.Color.create ~r:0x22 ~g:0x22 ~b:0x22 ~a:0xff)
+    (Sdl.Color.create ~r:0xff ~g:0x99 ~b:0x99 ~a:0xff)
 
 let rec main_event_handler state =
   let e = Sdl.Event.create () in
@@ -61,7 +67,9 @@ let rec main_loop state =
               (Sdl.render_get_clip_rect state.renderer);
         }
       in
-      Sdl.set_render_draw_color state.renderer 0x22 0x22 0x22 0xff >>= fun () ->
+      Helpers.set_render_draw_color state.renderer
+        (Theme.get_bg_color state.theme)
+      >>= fun () ->
       Sdl.render_clear state.renderer >>= fun () ->
       let state =
         {
@@ -72,7 +80,7 @@ let rec main_loop state =
               (Sdl.get_window_pixel_format state.window);
         }
       in
-      (match Document.render_hook state.document state.renderer state.font with
+      (match Document.render_hook state.document state.renderer state.theme with
       | None -> Printf.printf "Warning: texture was None\n"
       | Some texture ->
           Sdl.set_render_target state.renderer None >>= fun () ->
@@ -101,7 +109,7 @@ let rec main_loop state =
         }
       in
       Performance_counter_render.as_max_text state.frame_perfc state.renderer
-        state.font target_mspf;
+        state.theme target_mspf;
 
       (* Performance_counter_render.as_bar_graph state.frame_perfc state.renderer
          (Sdl.get_window_pixel_format state.window)
@@ -119,12 +127,12 @@ let main () =
   Ttf.init () >>= fun () ->
   Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
   >>= fun (w, r) ->
-  Ttf.open_font font_location font_size >>= fun font ->
+  let theme = build_theme () in
   let filename = Dialogs.open_file "Open a file" in
   let document =
     match filename with
-    | Some filename -> Document.create_from_file font filename
-    | None -> Document.create_empty font
+    | Some filename -> Document.create_from_file theme filename
+    | None -> Document.create_empty theme
   in
   (match filename with
   | Some filename -> Sdl.set_window_title w filename
@@ -133,7 +141,7 @@ let main () =
     {
       window = w;
       renderer = r;
-      font;
+      theme;
       continue = true;
       document;
       document_size = { w = 620; h = 460 };

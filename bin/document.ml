@@ -4,14 +4,10 @@ open OEditor
 open OEditor.Helpers
 
 let scroll_speed = 20
-let default_fg_color = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff
-let default_bg_color = Sdl.Color.create ~r:0x33 ~g:0x33 ~b:0x33 ~a:0xff
 
 type document = {
   text : DocTextCache.t;
-  font : Ttf.font;
-  fg : Sdl.color;
-  bg : Sdl.color;
+  theme : Theme.t;
   cursor : Cursor.cursor;
   scroll_offset : Helpers.point;
   viewport_size : Helpers.size;
@@ -22,12 +18,10 @@ type document = {
   ctrl_pressed : bool;
 }
 
-let create_empty font =
+let create_empty theme =
   {
     text = DocTextCache.create ();
-    font;
-    bg = default_bg_color;
-    fg = default_fg_color;
+    theme;
     cursor = Cursor.create ();
     scroll_offset = { x = 0; y = 0 };
     viewport_size = { w = 0; h = 0 };
@@ -50,7 +44,8 @@ let get_column_from_pixel doc x row =
     let line = DocTextCache.get_line doc.text row in
     if col > String.length line then String.length line
     else
-      Ttf.size_utf8 doc.font (String.sub line 0 col) >>= fun (w, _) ->
+      Ttf.size_utf8 (Theme.get_text_font doc.theme) (String.sub line 0 col)
+      >>= fun (w, _) ->
       if normalised_x <= w then if col <> 0 then col - 1 else col
       else find_column (col + 1)
   in
@@ -59,7 +54,7 @@ let get_column_from_pixel doc x row =
 let get_line_from_pixel doc y =
   let normalised_y = y + doc.scroll_offset.y - doc.viewport_offset.y in
   clamp
-    (normalised_y / Ttf.font_height doc.font)
+    (normalised_y / Ttf.font_height (Theme.get_text_font doc.theme))
     0
     (DocTextCache.get_number_of_lines doc.text - 1)
 
@@ -87,10 +82,12 @@ let draw_line_of_text doc renderer font line_idx =
     | None -> ()
 
 let get_num_visible_lines doc =
-  match doc.viewport_size.h with 0 -> 0 | h -> h / Ttf.font_height doc.font
+  match doc.viewport_size.h with
+  | 0 -> 0
+  | h -> h / Ttf.font_height (Theme.get_text_font doc.theme)
 
 let get_first_visible_line doc =
-  max 0 (doc.scroll_offset.y / Ttf.font_height doc.font)
+  max 0 (doc.scroll_offset.y / Ttf.font_height (Theme.get_text_font doc.theme))
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
@@ -105,7 +102,7 @@ let scroll_to doc point =
   let max_y =
     max 0
       ((DocTextCache.get_number_of_lines doc.text - get_num_visible_lines doc)
-      * Ttf.font_height doc.font)
+      * Ttf.font_height (Theme.get_text_font doc.theme))
   in
   (* let max_y = min max_y doc.viewport_size.h in *)
   let y = clamp point.y 0 max_y in
@@ -114,8 +111,8 @@ let scroll_to doc point =
   { x; y }
 
 let scroll_cursor_into_view doc =
-  let scroll_margin = Ttf.font_height doc.font in
-  let font_height = Ttf.font_height doc.font in
+  let scroll_margin = Ttf.font_height (Theme.get_text_font doc.theme) in
+  let font_height = Ttf.font_height (Theme.get_text_font doc.theme) in
   let desired_line = Cursor.get_line doc.cursor in
   let first_visible_line = doc.scroll_offset.y / font_height in
   let last_visible_line = first_visible_line + get_num_visible_lines doc in
@@ -144,7 +141,8 @@ let scroll_cursor_into_view doc =
      in *)
   let x =
     let text_width =
-      get_width_of_text doc.font
+      get_width_of_text
+        (Theme.get_text_font doc.theme)
         (String.sub (get_current_line doc) 0 (Cursor.get_column doc.cursor))
     in
     if text_width > doc.scroll_offset.x + doc.viewport_size.w then
@@ -186,23 +184,26 @@ let prerender_hook doc renderer offset size pixel_format =
   {
     doc with
     text =
-      DocTextCache.prepare_textures doc.text renderer doc.font doc.cursor doc.fg
-        doc.bg
+      DocTextCache.prepare_textures doc.text renderer
+        (Theme.get_text_font doc.theme)
+        doc.cursor
+        (Theme.get_fg_color doc.theme)
+        (Theme.get_bg_color doc.theme)
         (get_first_visible_line doc)
         (get_last_visible_line doc + 1);
   }
 
-let render_hook doc renderer font =
+let render_hook doc renderer theme =
   if doc.text_changed || Cursor.is_dirty doc.cursor then (
     Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
-    Sdl.set_render_draw_color renderer (Sdl.Color.r doc.bg) (Sdl.Color.g doc.bg)
-      (Sdl.Color.b doc.bg) (Sdl.Color.a doc.bg)
+    Helpers.set_render_draw_color renderer (Theme.get_bg_color doc.theme)
     >>= fun () ->
     Sdl.render_fill_rect renderer None >>= fun () ->
-    draw_visible_lines doc renderer font;
+    draw_visible_lines doc renderer (Theme.get_text_font theme);
     Cursor.render_hook doc.cursor
       (DocTextCache.get_text doc.text)
-      doc.scroll_offset renderer font);
+      doc.scroll_offset renderer
+      (Theme.get_text_font theme));
   doc.cached_texture
 
 let postrender_hook doc =

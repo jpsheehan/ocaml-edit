@@ -81,8 +81,8 @@ let as_text perfc renderer font target fn =
   Sdl.free_surface surface;
   Sdl.destroy_texture texture
 
-let as_mean_text perfc renderer font target =
-  as_text perfc renderer font target compute_mean
+let as_mean_text perfc renderer theme target =
+  as_text perfc renderer (Theme.get_text_font theme) target compute_mean
 
-let as_max_text perfc renderer font target =
-  as_text perfc renderer font target compute_max
+let as_max_text perfc renderer theme target =
+  as_text perfc renderer (Theme.get_text_font theme) target compute_max

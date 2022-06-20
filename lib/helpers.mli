@@ -15,3 +15,6 @@ val init : 'a list -> 'a list
 val last : 'a list -> 'a option
 val range : min:int -> max:int -> int list
 val get_width_of_text : Tsdl_ttf.Ttf.font -> string -> int
+
+val set_render_draw_color :
+  Tsdl.Sdl.renderer -> Tsdl.Sdl.color -> unit Tsdl.Sdl.result
