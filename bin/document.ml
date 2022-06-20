@@ -38,6 +38,12 @@ let create_from_string font str =
 let create_from_file font filename =
   { (create_empty font) with text = DocTextCache.create_from_file filename }
 
+let destroy document =
+  let _document =
+    { document with text = DocTextCache.flush_textures document.text }
+  in
+  ()
+
 let get_column_from_pixel doc x row =
   let normalised_x = x + doc.scroll_offset.x - doc.viewport_offset.x in
   let rec find_column col =

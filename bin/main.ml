@@ -5,8 +5,6 @@ open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 14
-let target_fps = 60
-let target_mspf = 1000 / target_fps
 
 type editor_state = {
   window : Sdl.window;
@@ -16,7 +14,7 @@ type editor_state = {
   document_size : size;
   document_offset : point;
   continue : bool;
-  frame_perfc : int Performance_counter.performance_counter;
+  ctrl_pressed : bool;
 }
 
 let build_theme () =
@@ -31,8 +29,30 @@ let rec main_event_handler state =
     let state =
       match Sdl.Event.enum Sdl.Event.(get e typ) with
       | `Quit -> { state with continue = false }
-      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.escape ->
-          { state with continue = false }
+      | `Key_down
+        when Sdl.Event.(get e keyboard_keycode) = Sdl.K.o && state.ctrl_pressed
+        -> (
+          match Dialogs.open_file "Open a file" with
+          | Some filename ->
+              Document.destroy state.document;
+              Sdl.set_window_title state.window filename;
+              {
+                state with
+                document = Document.create_from_file state.theme filename;
+              }
+          | None -> state)
+      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.lctrl ->
+          let state = { state with ctrl_pressed = true } in
+          { state with document = Document.event_hook state.document e }
+      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.rctrl ->
+          let state = { state with ctrl_pressed = true } in
+          { state with document = Document.event_hook state.document e }
+      | `Key_up when Sdl.Event.(get e keyboard_keycode) = Sdl.K.lctrl ->
+          let state = { state with ctrl_pressed = false } in
+          { state with document = Document.event_hook state.document e }
+      | `Key_up when Sdl.Event.(get e keyboard_keycode) = Sdl.K.rctrl ->
+          let state = { state with ctrl_pressed = false } in
+          { state with document = Document.event_hook state.document e }
       | `Window_event
         when Sdl.Event.(get e window_event_id) = Sdl.Event.window_event_resized
         ->
@@ -58,12 +78,12 @@ let rec main_loop state =
   | false -> ()
   | true ->
       let state = main_event_handler state in
-      let now = Int32.to_int (Sdl.get_ticks ()) in
+      let start_of_frame = Int32.to_int (Sdl.get_ticks ()) in
       let state =
         {
           state with
           document =
-            Document.process_hook state.document now
+            Document.process_hook state.document start_of_frame
               (Sdl.render_get_clip_rect state.renderer);
         }
       in
@@ -81,7 +101,7 @@ let rec main_loop state =
         }
       in
       (match Document.render_hook state.document state.renderer state.theme with
-      | None -> Printf.printf "Warning: texture was None\n"
+      | None -> failwith "texture was None"
       | Some texture ->
           Sdl.set_render_target state.renderer None >>= fun () ->
           Sdl.render_copy
@@ -99,27 +119,10 @@ let rec main_loop state =
         { state with document = Document.postrender_hook state.document }
       in
 
-      (* Do some performance counting *)
-      let end_of_frame = Int32.to_int (Sdl.get_ticks ()) in
-      let diff = end_of_frame - now in
-      let state =
-        {
-          state with
-          frame_perfc = Performance_counter.push state.frame_perfc diff;
-        }
-      in
-      Performance_counter_render.as_max_text state.frame_perfc state.renderer
-        state.theme target_mspf;
-
-      (* Performance_counter_render.as_bar_graph state.frame_perfc state.renderer
-         (Sdl.get_window_pixel_format state.window)
-         target_mspf; *)
-
       (* Clean up the frame *)
       Sdl.render_present state.renderer;
-      (match diff with
-      | n when n <= 0 -> ()
-      | _ -> Sdl.delay (Int32.of_int diff));
+      Sdl.delay (Int32.of_int 15);
+
       main_loop state
 
 let main () =
@@ -128,15 +131,8 @@ let main () =
   Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
   >>= fun (w, r) ->
   let theme = build_theme () in
-  let filename = Dialogs.open_file "Open a file" in
-  let document =
-    match filename with
-    | Some filename -> Document.create_from_file theme filename
-    | None -> Document.create_empty theme
-  in
-  (match filename with
-  | Some filename -> Sdl.set_window_title w filename
-  | None -> Sdl.set_window_title w "OCaml Editor");
+  let document = Document.create_empty theme in
+  Sdl.set_window_title w "OCaml Editor";
   main_loop
     {
       window = w;
@@ -146,7 +142,7 @@ let main () =
       document;
       document_size = { w = 620; h = 460 };
       document_offset = { x = 10; y = 10 };
-      frame_perfc = Performance_counter.create 100;
+      ctrl_pressed = false;
     };
   Sdl.destroy_renderer r;
   Sdl.destroy_window w;

@@ -18,3 +18,4 @@ val prerender_hook :
 
 val postrender_hook : document -> document
 val event_hook : document -> Tsdl.Sdl.event -> document
+val destroy : document -> unit
