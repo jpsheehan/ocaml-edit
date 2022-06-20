@@ -163,7 +163,7 @@ let scroll_cursor_into_view doc =
     else if text_width < doc.scroll_offset.x then text_width - scroll_margin
     else doc.scroll_offset.x
   in
-  { doc with scroll_offset = { x; y }; text_changed = true }
+  { doc with scroll_offset = scroll_to doc { x; y }; text_changed = true }
 
 let process_hook document now (dst_rect : Sdl.rect) =
   {
