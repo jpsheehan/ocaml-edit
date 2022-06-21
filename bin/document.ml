@@ -46,6 +46,18 @@ let destroy document =
   in
   ()
 
+let get_max_texture_width doc =
+  (* this is a pure hack. I guess this is called after the texture has been destroyed but before it is created with the new data *)
+  let current_line_width =
+    Helpers.get_width_of_text
+      (Theme.get_text_font doc.theme)
+      (String.sub
+         (DocTextCache.get_line doc.text (Cursor.get_line doc.cursor))
+         0
+         (Cursor.get_column doc.cursor))
+  in
+  max current_line_width (DocTextCache.get_max_texture_width doc.text)
+
 let set_changed document changed =
   { document with changed_since_load = changed }
 
@@ -112,24 +124,22 @@ let draw_visible_lines doc renderer font =
   done
 
 let scroll_to doc point =
+  let font_height = Ttf.font_height (Theme.get_text_font doc.theme) in
   let max_y =
     max 0
       ((DocTextCache.get_number_of_lines doc.text - get_num_visible_lines doc)
-      * Ttf.font_height (Theme.get_text_font doc.theme))
+      * font_height)
   in
-  (* let max_y = min max_y doc.viewport_size.h in *)
   let y = clamp point.y 0 max_y in
   let max_x =
-    max 0 (DocTextCache.get_max_texture_width doc.text - doc.viewport_size.w)
+    max 0 (get_max_texture_width doc - doc.viewport_size.w + (2 * font_height))
   in
-  Printf.printf "Max x is %d\n" max_x;
   let x = clamp point.x 0 max_x in
-  (* TODO: Add upper limits for x too! *)
   { x; y }
 
 let scroll_cursor_into_view doc =
-  let scroll_margin = Ttf.font_height (Theme.get_text_font doc.theme) in
   let font_height = Ttf.font_height (Theme.get_text_font doc.theme) in
+  let scroll_margin = 2 * font_height in
   let desired_line = Cursor.get_line doc.cursor in
   let first_visible_line = doc.scroll_offset.y / font_height in
   let last_visible_line = first_visible_line + get_num_visible_lines doc in
@@ -157,14 +167,20 @@ let scroll_cursor_into_view doc =
        | _ -> y
      in *)
   let x =
-    let text_width =
+    let text_width_at_cursor =
       get_width_of_text
         (Theme.get_text_font doc.theme)
         (String.sub (get_current_line doc) 0 (Cursor.get_column doc.cursor))
     in
-    if text_width > doc.scroll_offset.x + doc.viewport_size.w then
-      text_width - doc.viewport_size.w + scroll_margin
-    else if text_width < doc.scroll_offset.x then text_width - scroll_margin
+    if
+      text_width_at_cursor
+      > doc.scroll_offset.x + doc.viewport_size.w - scroll_margin
+    then
+      (* we should scroll to the right so the cursor is in frame *)
+      text_width_at_cursor - doc.viewport_size.w + scroll_margin
+    else if text_width_at_cursor < doc.scroll_offset.x + scroll_margin then
+      (* we should scroll to the left so the cursor is in frame *)
+      text_width_at_cursor - scroll_margin
     else doc.scroll_offset.x
   in
   { doc with scroll_offset = scroll_to doc { x; y }; text_changed = true }
