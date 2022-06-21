@@ -1,11 +1,11 @@
-open Tsdl
 open Tsdl_ttf
 open OEditor.Helpers
+open OEditor
 
 type t = {
-  fg_color : Sdl.color;
-  bg_color : Sdl.color;
-  selection_color : Sdl.color;
+  fg_color : Color.t;
+  bg_color : Color.t;
+  selection_color : Color.t;
   text_font : Ttf.font;
 }
 

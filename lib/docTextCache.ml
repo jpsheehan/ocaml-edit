@@ -69,7 +69,9 @@ let flush_textures textCache =
     (range ~min:0 ~max:(List.length textCache.cache))
 
 let create_texture_from_text renderer font text fg bg : Sdl.texture * Sdl.rect =
-  Ttf.render_utf8_shaded font text fg bg >>= fun surface ->
+  Ttf.render_utf8_shaded font text (SdlHelpers.of_color fg)
+    (SdlHelpers.of_color bg)
+  >>= fun surface ->
   let surface_size = Sdl.get_clip_rect surface in
   Sdl.create_texture_from_surface renderer surface >>= fun texture ->
   Sdl.free_surface surface;

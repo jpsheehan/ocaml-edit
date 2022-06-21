@@ -39,6 +39,7 @@ An experimental editor made using OCaml.
 - [x] Refactor document lines as own module (refactored as `Doctext`)
 - [ ] Refactor entire rendering context (window, renderer, etc) as own module
 - [x] Refactor cursor module to do operations on `cursor_pos` instead. May want to declare own module so it is testable?
+- [ ] Lift all SDL references to the outside of the program
 
 ### Bugs
 

@@ -21,8 +21,8 @@ val prepare_textures :
   Tsdl.Sdl.renderer ->
   Tsdl_ttf.Ttf.font ->
   Cursor.cursor ->
-  Tsdl.Sdl.color ->
-  Tsdl.Sdl.color ->
+  Color.t ->
+  Color.t ->
   int ->
   int ->
   t

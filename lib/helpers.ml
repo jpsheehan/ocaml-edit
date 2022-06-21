@@ -51,5 +51,5 @@ let range ~min ~max =
   aux (max - 1) []
 
 let set_render_draw_color renderer color =
-  Sdl.set_render_draw_color renderer (Sdl.Color.r color) (Sdl.Color.g color)
-    (Sdl.Color.b color) (Sdl.Color.a color)
+  Sdl.set_render_draw_color renderer (Color.r color) (Color.g color)
+    (Color.b color) (Color.a color)

@@ -1,0 +1,1 @@
+val of_color : Color.t -> Tsdl.Sdl.color
