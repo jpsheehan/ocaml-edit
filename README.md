@@ -12,7 +12,7 @@ An experimental editor made using OCaml.
     - [x] Horizontal navigation
 - [ ] Vertical scrolling with cursor
     - Apply the idea of a scroll margin
-- [ ] Page up/down (implemented but not working, could just be this laptop)
+- [x] Page up/down (implemented but not working, could just be this laptop)
 - [ ] Ctrl+left/right should skip words
 
 ### Editing
