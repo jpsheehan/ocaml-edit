@@ -49,7 +49,3 @@ let last l =
 let range ~min ~max =
   let rec aux n l = if n < min then l else aux (n - 1) (n :: l) in
   aux (max - 1) []
-
-let set_render_draw_color renderer color =
-  Sdl.set_render_draw_color renderer (Color.r color) (Color.g color)
-    (Color.b color) (Color.a color)

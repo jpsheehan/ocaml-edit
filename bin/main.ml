@@ -8,8 +8,7 @@ let font_size = 14
 let default_window_title = "Editor"
 
 type editor_state = {
-  window : Sdl.window;
-  renderer : Sdl.renderer;
+  ctx : SdlContext.t;
   theme : Theme.t;
   document : Document.document;
   document_size : size;
@@ -20,7 +19,7 @@ type editor_state = {
 }
 
 let set_window_title state =
-  Sdl.set_window_title state.window
+  SdlContext.set_title state.ctx
     (match state.filename with
     | Some filename -> filename ^ " - " ^ default_window_title
     | None -> default_window_title)
@@ -62,7 +61,7 @@ let rec main_event_handler state =
         when Sdl.Event.(get e keyboard_keycode) = Sdl.K.n && state.ctrl_pressed
         ->
           Document.destroy state.document;
-          Sdl.set_window_title state.window default_window_title;
+          SdlContext.set_title state.ctx default_window_title;
           { state with document = Document.create_empty state.theme }
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.lctrl ->
           let state = { state with ctrl_pressed = true } in
@@ -110,10 +109,9 @@ let rec main_loop state =
               (Sdl.render_get_clip_rect state.renderer);
         }
       in
-      Helpers.set_render_draw_color state.renderer
-        (Theme.get_bg_color state.theme)
-      >>= fun () ->
-      Sdl.render_clear state.renderer >>= fun () ->
+      SdlContext.set_draw_color state.ctx (Theme.get_bg_color state.theme);
+
+      SdlContext.clear state.ctx;
       let state =
         {
           state with
@@ -149,16 +147,12 @@ let rec main_loop state =
       main_loop state
 
 let main () =
-  Sdl.init Sdl.Init.video >>= fun () ->
-  Ttf.init () >>= fun () ->
-  Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
-  >>= fun (w, r) ->
+  let ctx = SdlContext.create () in
   let theme = build_theme () in
   let document = Document.create_empty theme in
   let state =
     {
-      window = w;
-      renderer = r;
+      ctx;
       theme;
       continue = true;
       document;
