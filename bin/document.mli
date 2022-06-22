@@ -3,17 +3,16 @@ type document
 val create_empty : Theme.t -> document
 val create_from_file : Theme.t -> string -> document
 val create_from_string : Theme.t -> string -> document
-val process_hook : document -> int -> Tsdl.Sdl.rect -> document
+val process_hook : document -> int -> OEditor.Rect.t -> document
 
 val render_hook :
-  document -> Tsdl.Sdl.renderer -> Theme.t -> Tsdl.Sdl.texture option
+  document -> OEditor.SdlContext.t -> Theme.t -> Tsdl.Sdl.texture option
 
 val prerender_hook :
   document ->
-  Tsdl.Sdl.renderer ->
+  OEditor.SdlContext.t ->
   OEditor.Helpers.point ->
   OEditor.Helpers.size ->
-  Tsdl.Sdl.Pixel.format_enum ->
   document
 
 val postrender_hook : document -> document

@@ -116,33 +116,29 @@ let rec main_loop state =
         {
           state with
           document =
-            Document.prerender_hook state.document state.renderer
-              state.document_offset state.document_size
-              (Sdl.get_window_pixel_format state.window);
+            Document.prerender_hook state.document state.ctx
+              state.document_offset state.document_size;
         }
       in
-      (match Document.render_hook state.document state.renderer state.theme with
+      (match Document.render_hook state.document state.ctx state.theme with
       | None -> failwith "texture was None"
       | Some texture ->
-          Sdl.set_render_target state.renderer None >>= fun () ->
-          Sdl.render_copy
+          SdlContext.set_target state.ctx None;
+          SdlContext.copy state.ctx texture
             ~src:
-              (Sdl.Rect.create ~x:0 ~y:0 ~w:state.document_size.w
+              (Rect.create ~x:0 ~y:0 ~w:state.document_size.w
                  ~h:state.document_size.h)
             ~dst:
-              (Sdl.Rect.create ~x:state.document_offset.x
-                 ~y:state.document_offset.y ~w:state.document_size.w
-                 ~h:state.document_size.h)
-            state.renderer texture
-          >>= fun () ->
-          Sdl.set_render_target state.renderer None >>= fun () -> ());
+              (Rect.create ~x:state.document_offset.x ~y:state.document_offset.y
+                 ~w:state.document_size.w ~h:state.document_size.h);
+          SdlContext.set_target state.ctx None);
       let state =
         { state with document = Document.postrender_hook state.document }
       in
 
       (* Clean up the frame *)
-      Sdl.render_present state.renderer;
-      Sdl.delay (Int32.of_int 15);
+      SdlContext.present state.ctx;
+      SdlContext.delay state.ctx 15;
 
       main_loop state
 
@@ -164,8 +160,7 @@ let main () =
   in
   set_window_title state;
   main_loop state;
-  Sdl.destroy_renderer r;
-  Sdl.destroy_window w;
+  SdlContext.destroy state.ctx;
   Ttf.quit ();
   Sdl.quit ();
   exit 0

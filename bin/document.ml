@@ -226,12 +226,11 @@ let prerender_hook doc renderer offset size pixel_format =
         (get_last_visible_line doc + 1);
   }
 
-let render_hook doc renderer theme =
+let render_hook doc ctx theme =
   if doc.text_changed || Cursor.is_dirty doc.cursor then (
-    Sdl.set_render_target renderer doc.cached_texture >>= fun () ->
-    Helpers.set_render_draw_color renderer (Theme.get_bg_color doc.theme)
-    >>= fun () ->
-    Sdl.render_fill_rect renderer None >>= fun () ->
+    SdlContext.set_target ctx doc.cached_texture;
+    SdlContext.set_draw_color ctx (Theme.get_bg_color doc.theme);
+    SdlContext.fill_rect ctx None;
     draw_visible_lines doc renderer (Theme.get_text_font theme);
     Cursor.render_hook doc.cursor
       (DocTextCache.get_text doc.text)

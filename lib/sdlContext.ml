@@ -21,8 +21,12 @@ let destroy t =
 
 let present t = Sdl.render_present t.renderer
 let clear t = Sdl.render_clear t.renderer >>= fun () -> ()
+let delay _t ms = Int32.of_int ms |> Sdl.delay
 
 let set_draw_color t color =
   Sdl.set_render_draw_color t.renderer (Color.r color) (Color.g color)
     (Color.b color) (Color.a color)
   >>= fun () -> ()
+
+let set_target t tgt = Sdl.set_render_target t.renderer tgt >>= fun () -> ()
+let fill_rect t r = Sdl.render_fill_rect t.renderer r >>= fun () -> ()
