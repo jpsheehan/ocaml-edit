@@ -106,7 +106,7 @@ let rec main_loop state =
           state with
           document =
             Document.process_hook state.document start_of_frame
-              (Sdl.render_get_clip_rect state.renderer);
+              (SdlContext.get_rect state.ctx);
         }
       in
       SdlContext.set_draw_color state.ctx (Theme.get_bg_color state.theme);
