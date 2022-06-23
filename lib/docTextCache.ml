@@ -4,8 +4,8 @@ open Helpers
 
 type t = {
   text : DocText.t;
-  cache : (Sdl.texture * Sdl.rect) option list;
-  selection_cache : (Sdl.texture * Sdl.rect) option list;
+  cache : (Texture.t * Rect.t) option list;
+  selection_cache : (Texture.t * Rect.t) option list;
 }
 
 let create_from_docText text =
@@ -18,10 +18,10 @@ let create_from_docText text =
 
 let mark_line_as_dirty textCache row =
   (match List.nth textCache.cache row with
-  | Some (texture, _) -> Sdl.destroy_texture texture
+  | Some (texture, _) -> Texture.destroy texture
   | None -> ());
   (match List.nth textCache.selection_cache row with
-  | Some (texture, _) -> Sdl.destroy_texture texture
+  | Some (texture, _) -> Texture.destroy texture
   | None -> ());
   {
     textCache with
@@ -68,7 +68,7 @@ let flush_textures textCache =
   mark_lines_as_dirty textCache
     (range ~min:0 ~max:(List.length textCache.cache))
 
-let create_texture_from_text renderer font text fg bg : Sdl.texture * Sdl.rect =
+let create_texture_from_text renderer font text fg bg =
   Ttf.render_utf8_shaded font text (SdlHelpers.of_color fg)
     (SdlHelpers.of_color bg)
   >>= fun surface ->
@@ -128,4 +128,4 @@ let get_text textCache = textCache.text
 
 let get_max_texture_width t =
   t.cache |> List.filter Option.is_some |> List.map Option.get |> List.map snd
-  |> List.map Sdl.Rect.w |> List.fold_left max 0
+  |> List.map Rect.w |> List.fold_left max 0
