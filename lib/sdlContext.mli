@@ -11,3 +11,4 @@ val delay : t -> int -> unit
 val copy : t -> Texture.t -> src:Rect.t -> dst:Rect.t -> unit
 val fill_rect : t -> Rect.t option -> unit
 val get_rect : t -> Rect.t
+val renderer : t -> Tsdl.Sdl.renderer

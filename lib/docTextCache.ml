@@ -68,27 +68,18 @@ let flush_textures textCache =
   mark_lines_as_dirty textCache
     (range ~min:0 ~max:(List.length textCache.cache))
 
-let create_texture_from_text renderer font text fg bg =
-  Ttf.render_utf8_shaded font text (SdlHelpers.of_color fg)
-    (SdlHelpers.of_color bg)
-  >>= fun surface ->
-  let surface_size = Sdl.get_clip_rect surface in
-  Sdl.create_texture_from_surface renderer surface >>= fun texture ->
-  Sdl.free_surface surface;
-  (texture, surface_size)
-
 (* let create_selection_texture_from_text renderer font text cursor fg bg idx :
      Sdl.texture * Sdl.rect =
    () *)
 
-let set_texture textCache renderer font _cursor fg bg idx =
-  if get_width_of_text font (get_line textCache idx) = 0 then textCache
+let set_texture textCache ctx font _cursor fg bg idx =
+  if Font.get_width_of_text font (get_line textCache idx) = 0 then textCache
   else
     let texture, size =
-      create_texture_from_text renderer font
+      SdlContext.create_texture_from_text ctx font fg bg
         (DocText.get_line textCache.text idx)
-        fg bg
     in
+
     let cache = replace textCache.cache idx (Some (texture, size)) in
     (* match Cursor.get_selection cursor with
        | Some (cursor_a, cursor_b) ->
@@ -105,7 +96,7 @@ let set_texture textCache renderer font _cursor fg bg idx =
     (* | None -> *)
     { textCache with cache }
 
-let prepare_textures textCache renderer font cursor fg bg first_line last_line =
+let prepare_textures textCache ctx font cursor fg bg first_line last_line =
   let last_line_exclusive =
     min (last_line + 1) (get_number_of_lines textCache)
   in
@@ -114,7 +105,7 @@ let prepare_textures textCache renderer font cursor fg bg first_line last_line =
     List.filter (fun idx -> List.nth textCache.cache idx = None) idxs
   in
   List.fold_left
-    (fun textCache idx -> set_texture textCache renderer font cursor fg bg idx)
+    (fun textCache idx -> set_texture textCache ctx font cursor fg bg idx)
     textCache idxs
 
 let get_texture textCache idx =

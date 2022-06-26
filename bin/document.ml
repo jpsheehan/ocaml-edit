@@ -49,7 +49,7 @@ let destroy document =
 let get_max_texture_width doc =
   (* this is a pure hack. I guess this is called after the texture has been destroyed but before it is created with the new data *)
   let current_line_width =
-    Helpers.get_width_of_text
+    Font.get_width_of_text
       (Theme.get_text_font doc.theme)
       (String.sub
          (DocTextCache.get_line doc.text (Cursor.get_line doc.cursor))
@@ -168,7 +168,7 @@ let scroll_cursor_into_view doc =
      in *)
   let x =
     let text_width_at_cursor =
-      get_width_of_text
+      Font.get_width_of_text
         (Theme.get_text_font doc.theme)
         (String.sub (get_current_line doc) 0 (Cursor.get_column doc.cursor))
     in

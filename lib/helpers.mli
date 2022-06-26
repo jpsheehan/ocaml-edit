@@ -14,4 +14,3 @@ val split_string_at : string -> int -> string * string
 val init : 'a list -> 'a list
 val last : 'a list -> 'a option
 val range : min:int -> max:int -> int list
-val get_width_of_text : Tsdl_ttf.Ttf.font -> string -> int

@@ -1,4 +1,4 @@
 type t
 
-val create : unit -> t
+val create : Tsdl.Sdl.texture -> t
 val destroy : t -> unit

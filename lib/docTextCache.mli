@@ -16,7 +16,7 @@ val flush_textures : t -> t
 val prepare_textures :
   t ->
   SdlContext.t ->
-  Tsdl_ttf.Ttf.font ->
+  Font.t ->
   Cursor.cursor ->
   Color.t ->
   Color.t ->

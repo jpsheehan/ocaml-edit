@@ -8,7 +8,6 @@ let ( >>= ) o f =
 
 (* let ( <| ) x f = (Fun.flip f) x *)
 let clamp x min max = if x < min then min else if x > max then max else x
-let get_width_of_text font text = Ttf.size_utf8 font text >>= fun (w, _) -> w
 
 type point = { x : int; y : int }
 type size = { w : int; h : int }

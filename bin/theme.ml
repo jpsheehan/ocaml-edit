@@ -1,4 +1,3 @@
-open Tsdl_ttf
 open OEditor.Helpers
 open OEditor
 
@@ -6,11 +5,11 @@ type t = {
   fg_color : Color.t;
   bg_color : Color.t;
   selection_color : Color.t;
-  text_font : Ttf.font;
+  text_font : Font.t;
 }
 
-let create font_location font_size fg_color bg_color selection_color =
-  Ttf.open_font font_location font_size >>= fun text_font ->
+let create (font_location, font_size) fg_color bg_color selection_color =
+  let text_font = Font.create font_location font_size in
   { text_font; fg_color; bg_color; selection_color }
 
 let get_fg_color t = t.fg_color

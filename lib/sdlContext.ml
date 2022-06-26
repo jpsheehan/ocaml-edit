@@ -44,3 +44,4 @@ let set_draw_color t color =
 let set_target t tgt = Sdl.set_render_target t.renderer tgt >>= fun () -> ()
 let fill_rect t r = Sdl.render_fill_rect t.renderer r >>= fun () -> ()
 let get_rect t = rect_of_sdl (Sdl.render_get_clip_rect t.renderer)
+let renderer t = t.renderer
