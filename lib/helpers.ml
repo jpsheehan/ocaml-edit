@@ -1,6 +1,3 @@
-open Tsdl_ttf
-open Tsdl
-
 let ( >>= ) o f =
   match o with
   | Error (`Msg e) -> failwith (Printf.sprintf "Error %s" e)

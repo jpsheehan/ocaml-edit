@@ -49,7 +49,7 @@ let destroy document =
 let get_max_texture_width doc =
   (* this is a pure hack. I guess this is called after the texture has been destroyed but before it is created with the new data *)
   let current_line_width =
-    Font.get_width_of_text
+    SdlContext.font_get_width_of_text
       (Theme.get_text_font doc.theme)
       (String.sub
          (DocTextCache.get_line doc.text (Cursor.get_line doc.cursor))
@@ -69,8 +69,11 @@ let get_column_from_pixel doc x row =
     let line = DocTextCache.get_line doc.text row in
     if col > String.length line then String.length line
     else
-      Ttf.size_utf8 (Theme.get_text_font doc.theme) (String.sub line 0 col)
-      >>= fun (w, _) ->
+      let w, _ =
+        SdlContext.font_size_utf8
+          (Theme.get_text_font doc.theme)
+          (String.sub line 0 col)
+      in
       if normalised_x <= w then if col <> 0 then col - 1 else col
       else find_column (col + 1)
   in
@@ -79,7 +82,7 @@ let get_column_from_pixel doc x row =
 let get_line_from_pixel doc y =
   let normalised_y = y + doc.scroll_offset.y - doc.viewport_offset.y in
   clamp
-    (normalised_y / Ttf.font_height (Theme.get_text_font doc.theme))
+    (normalised_y / SdlContext.font_height (Theme.get_text_font doc.theme))
     0
     (DocTextCache.get_number_of_lines doc.text - 1)
 
@@ -109,10 +112,12 @@ let draw_line_of_text doc renderer font line_idx =
 let get_num_visible_lines doc =
   match doc.viewport_size.h with
   | 0 -> 0
-  | h -> h / Ttf.font_height (Theme.get_text_font doc.theme)
+  | h -> h / SdlContext.font_height (Theme.get_text_font doc.theme)
 
 let get_first_visible_line doc =
-  max 0 (doc.scroll_offset.y / Ttf.font_height (Theme.get_text_font doc.theme))
+  max 0
+    (doc.scroll_offset.y
+    / SdlContext.font_height (Theme.get_text_font doc.theme))
 
 let get_last_visible_line doc =
   let line = get_first_visible_line doc + get_num_visible_lines doc in
@@ -124,7 +129,7 @@ let draw_visible_lines doc renderer font =
   done
 
 let scroll_to doc point =
-  let font_height = Ttf.font_height (Theme.get_text_font doc.theme) in
+  let font_height = SdlContext.font_height (Theme.get_text_font doc.theme) in
   let max_y =
     max 0
       ((DocTextCache.get_number_of_lines doc.text - get_num_visible_lines doc)
@@ -138,7 +143,7 @@ let scroll_to doc point =
   { x; y }
 
 let scroll_cursor_into_view doc =
-  let font_height = Ttf.font_height (Theme.get_text_font doc.theme) in
+  let font_height = SdlContext.font_height (Theme.get_text_font doc.theme) in
   let scroll_margin = 2 * font_height in
   let desired_line = Cursor.get_line doc.cursor in
   let first_visible_line = doc.scroll_offset.y / font_height in
@@ -168,7 +173,7 @@ let scroll_cursor_into_view doc =
      in *)
   let x =
     let text_width_at_cursor =
-      Font.get_width_of_text
+      SdlContext.font_get_width_of_text
         (Theme.get_text_font doc.theme)
         (String.sub (get_current_line doc) 0 (Cursor.get_column doc.cursor))
     in
@@ -192,7 +197,7 @@ let process_hook document now (dst_rect : Sdl.rect) =
     viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
   }
 
-let prerender_hook doc renderer offset size pixel_format =
+let prerender_hook doc ctx offset size pixel_format =
   let doc =
     match
       (doc.text_changed || Cursor.is_dirty doc.cursor, doc.cached_texture)
@@ -206,7 +211,7 @@ let prerender_hook doc renderer offset size pixel_format =
     match doc.cached_texture with
     | None ->
         let new_texture =
-          Sdl.create_texture renderer pixel_format Sdl.Texture.access_target
+          SdlContext.texture_create ctx pixel_format Sdl.Texture.access_target
             ~w:size.w ~h:size.h
           >>= fun texture -> texture
         in

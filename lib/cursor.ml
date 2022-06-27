@@ -68,7 +68,7 @@ let render_selection a b text scroll_offset renderer font =
             else 0
           in
           let min_x =
-            get_width_of_text font (String.sub line 0 first_col)
+            SdlContext.font_get_width_of_text font (String.sub line 0 first_col)
             - scroll_offset.x
           in
           let last_col =
@@ -77,11 +77,11 @@ let render_selection a b text scroll_offset renderer font =
             else String.length line
           in
           let max_x =
-            get_width_of_text font (String.sub line 0 last_col)
+            SdlContext.font_get_width_of_text font (String.sub line 0 last_col)
             - scroll_offset.x
           in
           let width = max_x - min_x in
-          let height = Ttf.font_height font in
+          let height = SdlContext.font_height font in
           let y = (height * row) - scroll_offset.y in
           Sdl.render_fill_rect renderer
             (Some (Sdl.Rect.create ~x:min_x ~y ~w:width ~h:height))

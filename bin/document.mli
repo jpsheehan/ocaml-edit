@@ -6,7 +6,10 @@ val create_from_string : Theme.t -> string -> document
 val process_hook : document -> int -> OEditor.Rect.t -> document
 
 val render_hook :
-  document -> OEditor.SdlContext.t -> Theme.t -> OEditor.Texture.t option
+  document ->
+  OEditor.SdlContext.t ->
+  Theme.t ->
+  OEditor.SdlContext.texture option
 
 val prerender_hook :
   document ->

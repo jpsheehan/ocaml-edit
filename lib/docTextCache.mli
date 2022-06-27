@@ -9,14 +9,14 @@ val get_line : t -> int -> string
 val replace_line : t -> int -> string -> t
 val remove_line : t -> int -> t
 val insert_line_after : t -> int -> string -> t
-val get_texture : t -> int -> (Texture.t * Rect.t) option
-val get_selection_texture : t -> int -> (Texture.t * Rect.t) option
+val get_texture : t -> int -> (SdlContext.texture * Rect.t) option
+val get_selection_texture : t -> int -> (SdlContext.texture * Rect.t) option
 val flush_textures : t -> t
 
 val prepare_textures :
   t ->
   SdlContext.t ->
-  Font.t ->
+  SdlContext.font ->
   Cursor.cursor ->
   Color.t ->
   Color.t ->

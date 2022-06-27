@@ -4,8 +4,8 @@ open Helpers
 
 type t = {
   text : DocText.t;
-  cache : (Texture.t * Rect.t) option list;
-  selection_cache : (Texture.t * Rect.t) option list;
+  cache : (SdlContext.texture * Rect.t) option list;
+  selection_cache : (SdlContext.texture * Rect.t) option list;
 }
 
 let create_from_docText text =
@@ -18,10 +18,10 @@ let create_from_docText text =
 
 let mark_line_as_dirty textCache row =
   (match List.nth textCache.cache row with
-  | Some (texture, _) -> Texture.destroy texture
+  | Some (texture, _) -> SdlContext.texture_destroy texture
   | None -> ());
   (match List.nth textCache.selection_cache row with
-  | Some (texture, _) -> Texture.destroy texture
+  | Some (texture, _) -> SdlContext.texture_destroy texture
   | None -> ());
   {
     textCache with
@@ -73,7 +73,8 @@ let flush_textures textCache =
    () *)
 
 let set_texture textCache ctx font _cursor fg bg idx =
-  if Font.get_width_of_text font (get_line textCache idx) = 0 then textCache
+  if SdlContext.font_get_width_of_text font (get_line textCache idx) = 0 then
+    textCache
   else
     let texture, size =
       SdlContext.create_texture_from_text ctx font fg bg

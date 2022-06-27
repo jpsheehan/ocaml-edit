@@ -6,4 +6,4 @@ val create :
 val get_fg_color : t -> OEditor.Color.t
 val get_bg_color : t -> OEditor.Color.t
 val get_selection_color : t -> OEditor.Color.t
-val get_text_font : t -> OEditor.Font.t
+val get_text_font : t -> OEditor.SdlContext.font

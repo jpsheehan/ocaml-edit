@@ -19,6 +19,8 @@ let copy t texture src dst =
   let dst = sdl_of_rect dst in
   Sdl.render_copy t.renderer texture ~src ~dst >>= fun () -> ()
 
+let get_pixel_format ctx = Sdl.get_window_pixel_format ctx.window
+
 let create title =
   Sdl.init Sdl.Init.video >>= fun () ->
   Ttf.init () >>= fun () ->
@@ -44,4 +46,33 @@ let set_draw_color t color =
 let set_target t tgt = Sdl.set_render_target t.renderer tgt >>= fun () -> ()
 let fill_rect t r = Sdl.render_fill_rect t.renderer r >>= fun () -> ()
 let get_rect t = rect_of_sdl (Sdl.render_get_clip_rect t.renderer)
-let renderer t = t.renderer
+
+type font = string * int * Ttf.font
+
+let font_create location size =
+  Ttf.open_font location size >>= fun font -> (location, size, font)
+
+let font_get_width_of_text font text =
+  Ttf.size_utf8 font text >>= fun (w, _) -> w
+
+let font_create_texture_from_text font ctx fg bg text =
+  Ttf.render_utf8_shaded font text (of_color fg) (of_color bg)
+  >>= fun surface ->
+  let surface_size = Sdl.get_clip_rect surface in
+  Sdl.create_texture_from_surface ctx.renderer surface >>= fun texture ->
+  Sdl.free_surface surface;
+  let texture = Texture.create texture in
+  let surface_size = rect_of_sdl surface_size in
+  (texture, surface_size)
+
+let font_height (_, _, font) = Ttf.font_height font
+let font_size_utf8 (_, _, font) text = Ttf.size_utf8 font text
+
+type texture = Sdl.texture
+
+let texture_create ctx w h =
+  Sdl.create_texture ctx.renderer (get_pixel_format ctx)
+    Sdl.Texture.access_target ~w ~h
+  >>= fun texture -> texture
+
+let texture_destroy t = Sdl.destroy_texture t

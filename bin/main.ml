@@ -25,7 +25,7 @@ let set_window_title state =
     | None -> default_window_title)
 
 let build_theme () =
-  Theme.create font_location font_size
+  Theme.create (font_location, font_size)
     (Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff)
     (Color.create ~r:0x22 ~g:0x22 ~b:0x22 ~a:0xff)
     (Color.create ~r:0xff ~g:0x99 ~b:0x99 ~a:0xff)
