@@ -43,8 +43,21 @@ let set_draw_color t color =
     (Color.b color) (Color.a color)
   >>= fun () -> ()
 
+let set_draw_blend_mode t mode =
+  Sdl.set_render_draw_blend_mode t.renderer
+    (if Blend.get mode = 0 then Sdl.Blend.mode_none else Sdl.Blend.mode_add)
+  >>= fun () -> ()
+
+let fill_rect t = function
+  | Some rect ->
+      let rect = sdl_of_rect rect in
+      Sdl.render_fill_rect t.renderer (Some rect) >>= fun () -> ()
+  | None -> Sdl.render_fill_rect t.renderer None >>= fun () -> ()
+
+let draw_line t x1 y1 x2 y2 =
+  Sdl.render_draw_line t.renderer x1 y1 x2 y2 >>= fun () -> ()
+
 let set_target t tgt = Sdl.set_render_target t.renderer tgt >>= fun () -> ()
-let fill_rect t r = Sdl.render_fill_rect t.renderer r >>= fun () -> ()
 let get_rect t = rect_of_sdl (Sdl.render_get_clip_rect t.renderer)
 
 type font = string * int * Ttf.font
@@ -61,7 +74,6 @@ let font_create_texture_from_text font ctx fg bg text =
   let surface_size = Sdl.get_clip_rect surface in
   Sdl.create_texture_from_surface ctx.renderer surface >>= fun texture ->
   Sdl.free_surface surface;
-  let texture = Texture.create texture in
   let surface_size = rect_of_sdl surface_size in
   (texture, surface_size)
 

@@ -1,5 +1,3 @@
-open Tsdl
-open Tsdl_ttf
 open Helpers
 
 type t = {
@@ -77,7 +75,7 @@ let set_texture textCache ctx font _cursor fg bg idx =
     textCache
   else
     let texture, size =
-      SdlContext.create_texture_from_text ctx font fg bg
+      SdlContext.font_create_texture_from_text font ctx fg bg
         (DocText.get_line textCache.text idx)
     in
 

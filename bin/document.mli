@@ -1,14 +1,14 @@
 type document
 
-val create_empty : Theme.t -> document
-val create_from_file : Theme.t -> string -> document
-val create_from_string : Theme.t -> string -> document
+val create_empty : OEditor.Theme.t -> document
+val create_from_file : OEditor.Theme.t -> string -> document
+val create_from_string : OEditor.Theme.t -> string -> document
 val process_hook : document -> int -> OEditor.Rect.t -> document
 
 val render_hook :
   document ->
   OEditor.SdlContext.t ->
-  Theme.t ->
+  OEditor.Theme.t ->
   OEditor.SdlContext.texture option
 
 val prerender_hook :

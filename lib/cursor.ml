@@ -41,24 +41,23 @@ let process_hook cursor now =
 
 let postrender_hook cursor = { cursor with dirty = false }
 
-let render_caret pos text scroll_offset renderer font =
+let render_caret pos text scroll_offset ctx font =
   let row = CursorPos.get_row pos in
   let line_so_far =
     String.sub (DocText.get_line text row) 0 (CursorPos.get_col pos)
   in
-  let line_height = Ttf.font_height font in
-  Ttf.size_text font line_so_far >>= fun (w, h) ->
-  Sdl.render_draw_line renderer (w - scroll_offset.x)
+  let line_height = SdlContext.font_height font in
+  let w, h = SdlContext.font_size_utf8 font line_so_far in
+  SdlContext.draw_line ctx (w - scroll_offset.x)
     ((row * line_height) - scroll_offset.y)
     (w - scroll_offset.x)
     ((row * line_height) + h - scroll_offset.y)
-  >>= fun () -> ()
 
-let render_selection a b text scroll_offset renderer font =
+let render_selection a b text scroll_offset ctx font theme =
   match List.sort CursorPos.compare [ a; b ] with
   | [ primary; secondary ] ->
-      Sdl.set_render_draw_color renderer 0x55 0x55 0x55 0xff >>= fun () ->
-      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_add >>= fun () ->
+      SdlContext.set_draw_color ctx (Theme.get_selection_color theme);
+      SdlContext.set_draw_blend_mode ctx Blend.mode_add;
       let rec highlight_line row =
         if row > CursorPos.get_row secondary then ()
         else
@@ -83,28 +82,27 @@ let render_selection a b text scroll_offset renderer font =
           let width = max_x - min_x in
           let height = SdlContext.font_height font in
           let y = (height * row) - scroll_offset.y in
-          Sdl.render_fill_rect renderer
-            (Some (Sdl.Rect.create ~x:min_x ~y ~w:width ~h:height))
-          >>= fun () ->
+          SdlContext.fill_rect ctx
+            (Some (Rect.create ~x:min_x ~y ~w:width ~h:height));
           highlight_line (row + 1);
           ()
       in
       highlight_line (CursorPos.get_row primary);
-      Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_none >>= fun () ->
-      ()
+      SdlContext.set_draw_blend_mode ctx Blend.mode_none
   | _ -> failwith "Could not compare CursorPos.t"
 
-let render_hook cursor text scroll_offset renderer font =
+let render_hook cursor text scroll_offset ctx font theme =
   match cursor.selection_end with
   | None ->
       if cursor.blink_state then
-        Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-        render_caret cursor.pos text scroll_offset renderer font
+        SdlContext.set_draw_color ctx (Theme.get_cursor_color theme);
+      render_caret cursor.pos text scroll_offset ctx font
   | Some selection_pos ->
-      render_selection cursor.pos selection_pos text scroll_offset renderer font;
+      render_selection cursor.pos selection_pos text scroll_offset ctx font
+        theme;
       if cursor.blink_state then
-        Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-        render_caret selection_pos text scroll_offset renderer font
+        SdlContext.set_draw_color ctx (Theme.get_selection_color theme);
+      render_caret selection_pos text scroll_offset ctx font
 
 let get_selection cursor =
   match cursor.selection_end with

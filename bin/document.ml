@@ -94,19 +94,18 @@ let convert_mouse_pos_to_cursor_pos doc pos =
 let get_current_line doc =
   DocTextCache.get_line doc.text (Cursor.get_line doc.cursor)
 
-let draw_line_of_text doc renderer font line_idx =
+let draw_line_of_text doc ctx font line_idx =
   let line = DocTextCache.get_line doc.text line_idx in
   if String.length line > 0 then
     let line_height = Ttf.font_height font in
     match DocTextCache.get_texture doc.text line_idx with
     | Some (texture, src_size) ->
         let dst_size =
-          Sdl.Rect.create ~x:(-doc.scroll_offset.x)
+          Rect.create ~x:(-doc.scroll_offset.x)
             ~y:(-doc.scroll_offset.y + (line_height * line_idx))
-            ~w:(Sdl.Rect.w src_size) ~h:(Sdl.Rect.h src_size)
+            ~w:(Rect.w src_size) ~h:(Rect.h src_size)
         in
-        Sdl.render_copy ~src:src_size ~dst:dst_size renderer texture
-        >>= fun () -> ()
+        SdlContext.copy ctx texture ~src:src_size ~dst:dst_size
     | None -> ()
 
 let get_num_visible_lines doc =
