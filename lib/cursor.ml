@@ -1,5 +1,3 @@
-open Tsdl
-open Tsdl_ttf
 open Helpers
 
 type cursor = {
@@ -91,7 +89,8 @@ let render_selection a b text scroll_offset ctx font theme =
       SdlContext.set_draw_blend_mode ctx Blend.mode_none
   | _ -> failwith "Could not compare CursorPos.t"
 
-let render_hook cursor text scroll_offset ctx font theme =
+let render_hook cursor text scroll_offset ctx theme =
+  let font = Theme.get_text_font theme in
   match cursor.selection_end with
   | None ->
       if cursor.blink_state then

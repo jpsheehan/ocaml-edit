@@ -2,7 +2,7 @@ type t
 type font
 type texture
 
-val create : unit -> t
+val create : string -> t
 val destroy : t -> unit
 val present : t -> unit
 val clear : t -> unit
@@ -15,6 +15,7 @@ val copy : t -> texture -> src:Rect.t -> dst:Rect.t -> unit
 val fill_rect : t -> Rect.t option -> unit
 val draw_line : t -> int -> int -> int -> int -> unit
 val get_rect : t -> Rect.t
+val get_ticks : unit -> int
 
 (* until we can put these in some sort of "submodule" (would we want to?) just pop these here*)
 val font_create : string -> int -> font
@@ -28,5 +29,5 @@ val font_size_utf8 : font -> string -> int * int
 
 (* Same with the texture stuff *)
 
-val texture_create : w:int -> h:int -> texture
+val texture_create : t -> w:int -> h:int -> texture
 val texture_destroy : texture -> unit

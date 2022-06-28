@@ -1,7 +1,6 @@
-open Tsdl
-open Tsdl_ttf
 open OEditor
 open OEditor.Helpers
+open Tsdl
 
 let scroll_speed = 20
 
@@ -13,7 +12,7 @@ type document = {
   viewport_size : Helpers.size;
   viewport_offset : Helpers.point;
   text_changed : bool;
-  cached_texture : Sdl.texture option;
+  cached_texture : SdlContext.texture option;
   shift_pressed : bool;
   ctrl_pressed : bool;
   changed_since_load : bool;
@@ -97,7 +96,7 @@ let get_current_line doc =
 let draw_line_of_text doc ctx font line_idx =
   let line = DocTextCache.get_line doc.text line_idx in
   if String.length line > 0 then
-    let line_height = Ttf.font_height font in
+    let line_height = SdlContext.font_height font in
     match DocTextCache.get_texture doc.text line_idx with
     | Some (texture, src_size) ->
         let dst_size =
@@ -189,31 +188,27 @@ let scroll_cursor_into_view doc =
   in
   { doc with scroll_offset = scroll_to doc { x; y }; text_changed = true }
 
-let process_hook document now (dst_rect : Sdl.rect) =
+let process_hook document now dst_rect =
   {
     document with
     cursor = Cursor.process_hook document.cursor now;
-    viewport_size = { w = Sdl.Rect.w dst_rect; h = Sdl.Rect.h dst_rect };
+    viewport_size = { w = Rect.w dst_rect; h = Rect.h dst_rect };
   }
 
-let prerender_hook doc ctx offset size pixel_format =
+let prerender_hook doc ctx offset size =
   let doc =
     match
       (doc.text_changed || Cursor.is_dirty doc.cursor, doc.cached_texture)
     with
     | true, Some texture ->
-        Sdl.destroy_texture texture;
+        SdlContext.texture_destroy texture;
         { doc with cached_texture = None }
     | _ -> doc
   in
   let doc =
     match doc.cached_texture with
     | None ->
-        let new_texture =
-          SdlContext.texture_create ctx pixel_format Sdl.Texture.access_target
-            ~w:size.w ~h:size.h
-          >>= fun texture -> texture
-        in
+        let new_texture = SdlContext.texture_create ctx ~w:size.w ~h:size.h in
         { doc with cached_texture = Some new_texture }
     | _ -> doc
   in
@@ -221,7 +216,7 @@ let prerender_hook doc ctx offset size pixel_format =
   {
     doc with
     text =
-      DocTextCache.prepare_textures doc.text renderer
+      DocTextCache.prepare_textures doc.text ctx
         (Theme.get_text_font doc.theme)
         doc.cursor
         (Theme.get_fg_color doc.theme)
@@ -235,11 +230,10 @@ let render_hook doc ctx theme =
     SdlContext.set_target ctx doc.cached_texture;
     SdlContext.set_draw_color ctx (Theme.get_bg_color doc.theme);
     SdlContext.fill_rect ctx None;
-    draw_visible_lines doc renderer (Theme.get_text_font theme);
+    draw_visible_lines doc ctx (Theme.get_text_font theme);
     Cursor.render_hook doc.cursor
       (DocTextCache.get_text doc.text)
-      doc.scroll_offset renderer
-      (Theme.get_text_font theme));
+      doc.scroll_offset ctx theme);
   doc.cached_texture
 
 let postrender_hook doc =

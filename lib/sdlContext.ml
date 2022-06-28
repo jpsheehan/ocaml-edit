@@ -14,7 +14,7 @@ type t = { window : Sdl.window; renderer : Sdl.renderer; title : string }
 let of_color c =
   Sdl.Color.create ~r:(Color.r c) ~g:(Color.g c) ~b:(Color.b c) ~a:(Color.a c)
 
-let copy t texture src dst =
+let copy t texture ~src ~dst =
   let src = sdl_of_rect src in
   let dst = sdl_of_rect dst in
   Sdl.render_copy t.renderer texture ~src ~dst >>= fun () -> ()
@@ -31,7 +31,9 @@ let create title =
 
 let destroy t =
   Sdl.destroy_renderer t.renderer;
-  Sdl.destroy_window t.window
+  Sdl.destroy_window t.window;
+  Ttf.quit ();
+  Sdl.quit ()
 
 let set_title t title = Sdl.set_window_title t.window title
 let present t = Sdl.render_present t.renderer
@@ -54,6 +56,8 @@ let fill_rect t = function
       Sdl.render_fill_rect t.renderer (Some rect) >>= fun () -> ()
   | None -> Sdl.render_fill_rect t.renderer None >>= fun () -> ()
 
+let get_ticks () = Int32.to_int (Sdl.get_ticks ())
+
 let draw_line t x1 y1 x2 y2 =
   Sdl.render_draw_line t.renderer x1 y1 x2 y2 >>= fun () -> ()
 
@@ -65,10 +69,10 @@ type font = string * int * Ttf.font
 let font_create location size =
   Ttf.open_font location size >>= fun font -> (location, size, font)
 
-let font_get_width_of_text font text =
+let font_get_width_of_text (_, _, font) text =
   Ttf.size_utf8 font text >>= fun (w, _) -> w
 
-let font_create_texture_from_text font ctx fg bg text =
+let font_create_texture_from_text (_, _, font) ctx fg bg text =
   Ttf.render_utf8_shaded font text (of_color fg) (of_color bg)
   >>= fun surface ->
   let surface_size = Sdl.get_clip_rect surface in
@@ -78,11 +82,13 @@ let font_create_texture_from_text font ctx fg bg text =
   (texture, surface_size)
 
 let font_height (_, _, font) = Ttf.font_height font
-let font_size_utf8 (_, _, font) text = Ttf.size_utf8 font text
+
+let font_size_utf8 (_, _, font) text =
+  Ttf.size_utf8 font text >>= fun (w, h) -> (w, h)
 
 type texture = Sdl.texture
 
-let texture_create ctx w h =
+let texture_create ctx ~w ~h =
   Sdl.create_texture ctx.renderer (get_pixel_format ctx)
     Sdl.Texture.access_target ~w ~h
   >>= fun texture -> texture

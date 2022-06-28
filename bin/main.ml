@@ -1,7 +1,6 @@
-open Tsdl
-open Tsdl_ttf
 open OEditor
 open OEditor.Helpers
+open Tsdl
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 14
@@ -29,6 +28,7 @@ let build_theme () =
     (Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff)
     (Color.create ~r:0x22 ~g:0x22 ~b:0x22 ~a:0xff)
     (Color.create ~r:0xff ~g:0x99 ~b:0x99 ~a:0xff)
+    (Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff)
 
 let _prompt_to_save state =
   if Document.get_changed state.document then
@@ -100,7 +100,7 @@ let rec main_loop state =
   | false -> ()
   | true ->
       let state = main_event_handler state in
-      let start_of_frame = Int32.to_int (Sdl.get_ticks ()) in
+      let start_of_frame = SdlContext.get_ticks () in
       let state =
         {
           state with
@@ -143,7 +143,7 @@ let rec main_loop state =
       main_loop state
 
 let main () =
-  let ctx = SdlContext.create () in
+  let ctx = SdlContext.create default_window_title in
   let theme = build_theme () in
   let document = Document.create_empty theme in
   let state =
@@ -161,8 +161,6 @@ let main () =
   set_window_title state;
   main_loop state;
   SdlContext.destroy state.ctx;
-  Ttf.quit ();
-  Sdl.quit ();
   exit 0
 
 let () = main ()

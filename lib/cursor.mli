@@ -8,12 +8,7 @@ val process_hook : cursor -> int -> cursor
 (** Processes the cursor's logic before rendering. *)
 
 val render_hook :
-  cursor ->
-  DocText.t ->
-  Helpers.point ->
-  Tsdl.Sdl.renderer ->
-  Tsdl_ttf.Ttf.font ->
-  unit
+  cursor -> DocText.t -> Helpers.point -> SdlContext.t -> Theme.t -> unit
 (** Renders the cursor to the current render target. *)
 
 val set_column : cursor -> DocText.t -> int -> cursor
