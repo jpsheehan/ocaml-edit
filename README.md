@@ -10,7 +10,7 @@ An experimental editor made using OCaml.
 - [x] Cursor navigation with mouse
     - [x] Vertical navigation
     - [x] Horizontal navigation
-- [ ] Vertical scrolling with cursor
+- [x] Vertical scrolling with cursor
     - Apply the idea of a scroll margin
 - [x] Page up/down (implemented but not working, could just be this laptop)
 - [ ] Ctrl+left/right should skip words
@@ -25,7 +25,7 @@ An experimental editor made using OCaml.
   - [x] Select-all
 
 ### UI
-- [ ] Widgets (TODO: Expand on this)
+- [ ] Widgets? (TODO: Expand on this)
 - [ ] Line numbers
 - [ ] Syntax highlighting?
 - [x] Window resize event
@@ -37,9 +37,12 @@ An experimental editor made using OCaml.
 
 ### Tech Debt
 - [x] Refactor document lines as own module (refactored as `Doctext`)
-- [ ] Refactor entire rendering context (window, renderer, etc) as own module
+- [x] Refactor entire rendering context (window, renderer, etc) as own module
 - [x] Refactor cursor module to do operations on `cursor_pos` instead. May want to declare own module so it is testable?
 - [ ] Lift all SDL references to the outside of the program
+  - [x] Lift everything except for the events system
+  - [ ] Lift the event system
+
 
 ### Bugs
 
