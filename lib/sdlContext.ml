@@ -64,6 +64,69 @@ let draw_line t x1 y1 x2 y2 =
 let set_target t tgt = Sdl.set_render_target t.renderer tgt >>= fun () -> ()
 let get_rect t = rect_of_sdl (Sdl.render_get_clip_rect t.renderer)
 
+type event_state = {
+  ctrl_down : bool;
+  shift_down : bool;
+  alt_down : bool;
+}
+
+let get_kmod s =
+  if s.ctrl_down then Event.M_ctrl
+  else if s.alt_down then Event.M_alt
+  else if s.shift_down then Event.M_shift
+  else Event.M_none 
+
+let key_of_sdl = function
+| Sdl.K.ctrl -> Some Event.K_ctrl
+| Sdl.K.shift -> Some Event.K_shift
+| Sdl.K.alt -> Some Event.K_alt
+| Sdl.K.return -> Some Event.K_return
+| Sdl.K.backspace -> Some Event.K_backspace
+| Sdl.K.left -> Some Event.K_left
+| Sdl.K.right -> Some Event.K_right
+| Sdl.K.down -> Some Event.K_down
+| Sdl.K.up -> Some Event.K_up
+| Sdl.K.a -> Some Event.K_a
+| Sdl.K.b -> Some Event.K_b
+| Sdl.K.c -> Some Event.K_c
+| Sdl.K.d -> Some Event.K_d
+| Sdl.K.e -> Some Event.K_e
+| Sdl.K.f -> Some Event.K_f
+| Sdl.K.g -> Some Event.K_g
+| Sdl.K.h -> Some Event.K_h
+| Sdl.K.i -> Some Event.K_i
+| Sdl.K.j -> Some Event.K_j
+| Sdl.K.k -> Some Event.K_k
+| Sdl.K.l -> Some Event.K_l
+| Sdl.K.m -> Some Event.K_m
+| Sdl.K.n -> Some Event.K_n
+| Sdl.K.o -> Some Event.K_o
+| Sdl.K.p -> Some Event.K_p
+| Sdl.K.q -> Some Event.K_q
+| Sdl.K.r -> Some Event.K_r
+| Sdl.K.s -> Some Event.K_s
+| Sdl.K.t -> Some Event.K_t
+| Sdl.K.u -> Some Event.K_u
+| Sdl.K.v -> Some Event.K_v
+| Sdl.K.w -> Some Event.K_w
+| Sdl.K.x -> Some Event.K_x
+| Sdl.K.y -> Some Event.K_y
+| Sdl.K.z -> Some Event.K_z
+| _ -> None
+
+let event_of_sdl = function
+  | Some e ->
+      Some
+        (match Sdl.Event.enum Sdl.Event.(get e typ) with `Quit -> Event.Quit
+        | `Key_down ->
+          let key = Sdl.Event.(get e keyboard_keycode) |> key_of_sdl in
+          Event.(KeyDown (key, M_none)))
+  | None -> None
+
+let poll_event t =
+  let e = Sdl.Event.create () in
+  if Sdl.poll_event (Some e) then sdl_of_event e else None
+
 type font = string * int * Ttf.font
 
 let font_create location size =

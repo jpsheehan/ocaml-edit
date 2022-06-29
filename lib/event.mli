@@ -37,7 +37,7 @@ type key =
   | K_backspace
   | K_delete
 
-type kmod = M_shift | M_ctrl | M_alt | M_meta
+type kmod = M_none | M_shift | M_ctrl | M_alt | M_meta
 type mouse = Mouse_left | Mouse_right | Mouse_middle
 
 type t =
@@ -48,3 +48,4 @@ type t =
   | MouseMove of Helpers.point
   | MouseWheel of int * int
   | TextInput of string
+  | Quit

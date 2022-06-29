@@ -16,6 +16,7 @@ val fill_rect : t -> Rect.t option -> unit
 val draw_line : t -> int -> int -> int -> int -> unit
 val get_rect : t -> Rect.t
 val get_ticks : unit -> int
+val poll_event : t -> Event.t option
 
 (* until we can put these in some sort of "submodule" (would we want to?) just pop these here*)
 val font_create : string -> int -> font
