@@ -1,6 +1,5 @@
 open OEditor
 open OEditor.Helpers
-open Tsdl
 
 let scroll_speed = 20
 
@@ -418,11 +417,11 @@ let remove_char_before_cursor doc =
     in
     { doc with text; cursor; text_changed = true }
 
-let event_hook doc e =
-  match Sdl.Event.enum Sdl.Event.(get e typ) with
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
+let event_hook doc event =
+  match event with
+  | Event.(KeyDown (K_left, m)) ->
       scroll_cursor_into_view
-        (if doc.shift_pressed then
+        (if m = Event.M_shift then
          {
            doc with
            cursor =
@@ -437,9 +436,9 @@ let event_hook doc e =
             cursor =
               Cursor.set_column_rel cursor (DocTextCache.get_text doc.text) (-1);
           })
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+  | Event.(KeyDown (K_right, m)) ->
       scroll_cursor_into_view
-        (if doc.shift_pressed then
+        (if m = M_shift then
          {
            doc with
            cursor =
@@ -454,9 +453,9 @@ let event_hook doc e =
             cursor =
               Cursor.set_column_rel cursor (DocTextCache.get_text doc.text) 1;
           })
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+  | Event.(KeyDown (K_up, m)) ->
       scroll_cursor_into_view
-        (if doc.shift_pressed then
+        (if m = M_shift then
          {
            doc with
            cursor =
@@ -471,9 +470,9 @@ let event_hook doc e =
             cursor =
               Cursor.set_line_rel cursor (DocTextCache.get_text doc.text) (-1);
           })
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+  | Event.(KeyDown (K_down, m)) ->
       scroll_cursor_into_view
-        (if doc.shift_pressed then
+        (if m = M_shift then
          {
            doc with
            cursor =
@@ -489,20 +488,19 @@ let event_hook doc e =
             cursor =
               Cursor.set_line_rel cursor (DocTextCache.get_text doc.text) 1;
           })
-  | `Key_down
-    when Sdl.Event.(get e keyboard_keycode) = Sdl.K.a && doc.ctrl_pressed ->
+  | Event.(KeyDown (K_a, M_ctrl)) ->
       {
         doc with
         cursor = Cursor.select_all doc.cursor (DocTextCache.get_text doc.text);
       }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.home ->
+  | Event.(KeyDown (K_home, _)) ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
           doc with
           cursor = Cursor.set_column cursor (DocTextCache.get_text doc.text) 0;
         }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.kend ->
+  | Event.(KeyDown (K_end, _)) ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
@@ -512,7 +510,7 @@ let event_hook doc e =
               (DocTextCache.get_text doc.text)
               (String.length (get_current_line doc));
         }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pageup ->
+  | Event.(KeyDown (K_page_up, _)) ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
@@ -522,7 +520,7 @@ let event_hook doc e =
               (DocTextCache.get_text doc.text)
               (-get_num_visible_lines doc);
         }
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.pagedown ->
+  | Event.(KeyDown (K_page_down, _)) ->
       let cursor = Cursor.select_none doc.cursor in
       scroll_cursor_into_view
         {
@@ -532,36 +530,20 @@ let event_hook doc e =
               (DocTextCache.get_text doc.text)
               (get_num_visible_lines doc);
         }
-  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
-      { doc with shift_pressed = true }
-  | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lshift ->
-      { doc with shift_pressed = false }
-  | `Key_down when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
-      { doc with ctrl_pressed = true }
-  | `Key_up when Sdl.Event.(get e keyboard_scancode) = Sdl.Scancode.lctrl ->
-      { doc with ctrl_pressed = false }
-  | `Mouse_wheel ->
+  | Event.(MouseWheel (dx, dy)) ->
       {
         doc with
         scroll_offset =
           scroll_to doc
             {
-              x =
-                doc.scroll_offset.x
-                + (scroll_speed * -Sdl.Event.(get e mouse_wheel_x));
-              y =
-                doc.scroll_offset.y
-                + (scroll_speed * -Sdl.Event.(get e mouse_wheel_y));
+              x = doc.scroll_offset.x + (scroll_speed * -dx);
+              y = doc.scroll_offset.y + (scroll_speed * -dy);
             };
         text_changed = true;
       }
-  | `Mouse_button_down when Sdl.Event.(get e mouse_button_button) = 1 ->
+  | Event.(MouseDown (Mouse_left, pos)) ->
       let cursor_pos =
-        convert_mouse_pos_to_cursor_pos doc
-          {
-            x = Sdl.Event.(get e mouse_button_x);
-            y = Sdl.Event.(get e mouse_button_y);
-          }
+        convert_mouse_pos_to_cursor_pos doc { x = pos.x; y = pos.y }
       in
       scroll_cursor_into_view
         (if not doc.shift_pressed then
@@ -584,13 +566,12 @@ let event_hook doc e =
               (CursorPos.create cursor_pos.y cursor_pos.x)
           in
           { doc with cursor })
-  | `Text_input ->
-      let text = Sdl.Event.(get e text_editing_text) in
+  | Event.(TextInput text) ->
       scroll_cursor_into_view (insert_or_replace_text_at_cursor doc text)
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.return ->
+  | Event.(KeyDown (K_return, _)) ->
       scroll_cursor_into_view (insert_newline_at_cursor doc)
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.backspace ->
+  | Event.(KeyDown (K_backspace, _)) ->
       scroll_cursor_into_view (remove_char_before_cursor doc)
-  | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.delete ->
+  | Event.(KeyDown (K_delete, _)) ->
       scroll_cursor_into_view (remove_char_after_cursor doc)
   | _ -> doc

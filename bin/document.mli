@@ -19,7 +19,7 @@ val prerender_hook :
   document
 
 val postrender_hook : document -> document
-val event_hook : document -> Tsdl.Sdl.event -> document
+val event_hook : document -> OEditor.Event.t -> document
 val destroy : document -> unit
 val get_changed : document -> bool
 val set_changed : document -> bool -> document
