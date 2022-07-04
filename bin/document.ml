@@ -597,3 +597,10 @@ let event_hook doc e =
   | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.delete ->
       scroll_cursor_into_view (remove_char_after_cursor doc)
   | _ -> doc
+
+let map_lines doc f =
+  let rec aux i lines =
+    if i = DocTextCache.get_number_of_lines doc.text then lines
+    else aux (i + 1) (DocTextCache.get_line doc.text i :: lines)
+  in
+  List.map f (List.rev (aux 0 []))

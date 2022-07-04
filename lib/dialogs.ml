@@ -110,3 +110,27 @@ let open_file title =
   | Ok [] -> None
   | Ok filenames -> Some (List.nth filenames 0)
   | Error msg -> failwith msg
+
+let save_file title =
+  match
+    execute_zenity
+      {
+        title = Some title;
+        width = None;
+        height = None;
+        window_icon = None;
+        timeout = None;
+        dialog =
+          FileSelection
+            {
+              multiple = false;
+              filename = None;
+              directory = false;
+              save = true;
+              separator = None;
+            };
+      }
+  with
+  | Ok [] -> None
+  | Ok filenames -> Some (List.nth filenames 0)
+  | Error msg -> failwith msg

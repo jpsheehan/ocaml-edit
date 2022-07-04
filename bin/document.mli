@@ -21,3 +21,4 @@ val event_hook : document -> Tsdl.Sdl.event -> document
 val destroy : document -> unit
 val get_changed : document -> bool
 val set_changed : document -> bool -> document
+val map_lines : document -> (string -> 'a) -> 'a list

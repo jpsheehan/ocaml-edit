@@ -38,6 +38,17 @@ let _prompt_to_save state =
     else state
   else state
 
+let save_to_file state =
+  match state.filename with
+  | Some filename ->
+      let chan = open_out filename in
+      let lines = Document.map_lines state.document (fun x -> x) in
+      let content =
+        List.fold_left (fun a b -> a ^ "\n" ^ b) (List.hd lines) (List.tl lines)
+      in
+      output_string chan content
+  | None -> ()
+
 let rec main_event_handler state =
   let e = Sdl.Event.create () in
   if Sdl.poll_event (Some e) then
@@ -51,13 +62,35 @@ let rec main_event_handler state =
           match Dialogs.open_file "Open a file" with
           | Some filename ->
               Document.destroy state.document;
+              let state =
+                {
+                  state with
+                  filename = Some filename;
+                  document = Document.create_from_file state.theme filename;
+                }
+              in
               set_window_title state;
-              {
-                state with
-                filename = Some filename;
-                document = Document.create_from_file state.theme filename;
-              }
+              state
           | None -> state)
+      | `Key_down
+        when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s && state.ctrl_pressed
+        ->
+          let state =
+            match state.filename with
+            | Some _ -> state
+            | None -> (
+                match Dialogs.save_file "Save file" with
+                | Some filename ->
+                    {
+                      state with
+                      filename = Some filename;
+                      document = Document.set_changed state.document false;
+                    }
+                | None -> state)
+          in
+          save_to_file state;
+          set_window_title state;
+          state
       | `Key_down
         when Sdl.Event.(get e keyboard_keycode) = Sdl.K.n && state.ctrl_pressed
         ->
