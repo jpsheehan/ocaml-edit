@@ -210,12 +210,24 @@ let rec main_loop state =
 
       main_loop state
 
+let quick_start renderer theme =
+  let bg = Theme.get_bg_color theme in
+  let r = Color.r bg in
+  let g = Color.g bg in
+  let b = Color.b bg in
+  let a = Color.a bg in
+  Sdl.set_render_draw_color renderer r g b a >>= fun () ->
+  Sdl.render_clear renderer >>= fun () ->
+  Sdl.render_present renderer;
+  Sdl.delay (Int32.of_int 1)
+
 let main () =
   Sdl.init Sdl.Init.video >>= fun () ->
   Ttf.init () >>= fun () ->
   Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.(shown + resizable)
   >>= fun (w, r) ->
   let theme = build_theme () in
+  quick_start r theme;
   let document = Document.create_empty theme in
   let state =
     {
