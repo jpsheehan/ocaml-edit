@@ -1,7 +1,11 @@
 type t = { lines : string list }
 
 let create () = { lines = [ "" ] }
-let create_from_string str = { lines = String.split_on_char '\n' str }
+
+let create_from_string str =
+  let text = { lines = String.split_on_char '\n' str } in
+  if List.length text.lines = 0 then create () else text
+
 let get_number_of_lines t = List.length t.lines
 let get_line t idx = List.nth t.lines idx
 let replace_line t idx line = { lines = Helpers.replace t.lines idx line }
@@ -20,4 +24,5 @@ let create_from_file filename =
       close_in file;
       lines
   in
-  { lines = List.rev (read_lines_from_file []) }
+  let text = { lines = List.rev (read_lines_from_file []) } in
+  if List.length text.lines = 0 then create () else text

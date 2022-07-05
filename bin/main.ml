@@ -5,7 +5,7 @@ open OEditor.Helpers
 
 let font_location = "/usr/share/fonts/TTF/FiraCode-Regular.ttf"
 let font_size = 14
-let default_window_title = "Editor"
+let default_window_title = "Jesse's Editor"
 
 type editor_state = {
   window : Sdl.window;
@@ -17,13 +17,17 @@ type editor_state = {
   filename : string option;
   continue : bool;
   ctrl_pressed : bool;
+  old_changed_state : bool;
 }
 
 let set_window_title state =
+  let changed_star = if Document.get_changed state.document then "*" else "" in
   Sdl.set_window_title state.window
-    (match state.filename with
-    | Some filename -> filename ^ " - " ^ default_window_title
-    | None -> default_window_title)
+    (default_window_title ^ " - "
+    ^ (match state.filename with
+      | Some filename -> filename
+      | None -> "<unsaved file>")
+    ^ changed_star)
 
 let build_theme () =
   Theme.create font_location font_size
@@ -74,29 +78,45 @@ let rec main_event_handler state =
           | None -> state)
       | `Key_down
         when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s && state.ctrl_pressed
-        ->
-          let state =
-            match state.filename with
-            | Some _ -> state
-            | None -> (
-                match Dialogs.save_file "Save file" with
-                | Some filename ->
+        -> (
+          match state.filename with
+          | Some _ ->
+              save_to_file state;
+              let state =
+                {
+                  state with
+                  document = Document.set_changed state.document false;
+                }
+              in
+              set_window_title state;
+              state
+          | None -> (
+              match Dialogs.save_file "Save file" with
+              | Some filename ->
+                  let state =
                     {
                       state with
                       filename = Some filename;
                       document = Document.set_changed state.document false;
                     }
-                | None -> state)
-          in
-          save_to_file state;
-          set_window_title state;
-          state
+                  in
+                  save_to_file state;
+                  set_window_title state;
+                  state
+              | None -> state))
       | `Key_down
         when Sdl.Event.(get e keyboard_keycode) = Sdl.K.n && state.ctrl_pressed
         ->
           Document.destroy state.document;
-          Sdl.set_window_title state.window default_window_title;
-          { state with document = Document.create_empty state.theme }
+          let state =
+            {
+              state with
+              document = Document.create_empty state.theme;
+              filename = None;
+            }
+          in
+          set_window_title state;
+          state
       | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.lctrl ->
           let state = { state with ctrl_pressed = true } in
           { state with document = Document.event_hook state.document e }
@@ -179,6 +199,11 @@ let rec main_loop state =
       Sdl.render_present state.renderer;
       Sdl.delay (Int32.of_int 15);
 
+      let new_changed_state = Document.get_changed state.document in
+      if new_changed_state <> state.old_changed_state then
+        set_window_title state;
+      let state = { state with old_changed_state = new_changed_state } in
+
       main_loop state
 
 let main () =
@@ -199,6 +224,7 @@ let main () =
       document_offset = { x = 10; y = 10 };
       ctrl_pressed = false;
       filename = None;
+      old_changed_state = false;
     }
   in
   set_window_title state;
