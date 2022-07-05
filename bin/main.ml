@@ -153,8 +153,8 @@ let rec main_loop state =
   match state.continue with
   | false -> ()
   | true ->
-      let state = main_event_handler state in
       let start_of_frame = Int32.to_int (Sdl.get_ticks ()) in
+      let state = main_event_handler state in
       let state =
         {
           state with
@@ -197,6 +197,10 @@ let rec main_loop state =
 
       (* Clean up the frame *)
       Sdl.render_present state.renderer;
+      let end_of_frame = Int32.to_int (Sdl.get_ticks ()) in
+      let _diff = end_of_frame - start_of_frame in
+
+      (* Printf.printf "%d\n" diff; *)
       Sdl.delay (Int32.of_int 15);
 
       let new_changed_state = Document.get_changed state.document in
